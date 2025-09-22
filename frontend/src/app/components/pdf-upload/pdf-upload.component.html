@@ -1,0 +1,212 @@
+<div class="pdf-upload-page">
+  <div class="page-header">
+    <h1 class="page-title">PDF Upload</h1>
+    <p class="page-subtitle">Upload vendor documents for Finance team review</p>
+  </div>
+
+  <!-- Upload Section -->
+  <div class="upload-section">
+    <div class="upload-card">
+      <div class="card-header">
+        <h3>Upload New PDF</h3>
+        <p class="card-description">Select a PDF file to upload for Finance team review</p>
+      </div>
+      
+      <div class="upload-form">
+        <div class="form-group">
+          <label for="pdfFile" class="form-label">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Select PDF Files (Multiple Selection Allowed)
+          </label>
+          <input type="file" 
+                 id="pdfFile" 
+                 accept=".pdf" 
+                 multiple
+                 (change)="onFileSelected($event)"
+                 class="file-input">
+          
+          <div *ngIf="selectedFiles.length > 0" class="files-info">
+            <div class="files-header">
+              <span class="files-count">{{ selectedFiles.length }} file(s) selected</span>
+              <span class="total-size">Total: {{ getTotalFileSize() }}</span>
+            </div>
+            <div class="files-list">
+              <div *ngFor="let file of selectedFiles; let i = index" class="file-item">
+                <div class="file-details">
+                  <span class="file-name">{{ file.name }}</span>
+                  <span class="file-size">{{ formatFileSize(file.size) }}</span>
+                </div>
+                <div class="file-status">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Ready
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="pdfDescription" class="form-label">Description (Optional)</label>
+          <textarea id="pdfDescription" 
+                    [(ngModel)]="pdfDescription"
+                    placeholder="Brief description of the vendor document..."
+                    rows="4"
+                    class="description-input"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="requisitionSelect" class="form-label">Link to Requisition (Optional)</label>
+          <select id="requisitionSelect" 
+                  [(ngModel)]="selectedRequisitionId" 
+                  class="requisition-select">
+            <option value="">Select a requisition to link this PDF</option>
+            <option *ngFor="let req of availableRequisitions()" [value]="req.id">
+              #{{ req.id }} - {{ req.itemName }} ({{ req.quantity }} units) - {{ req.department }}
+            </option>
+          </select>
+          <small class="form-hint">Linking to a requisition helps the Finance team understand which request this PDF relates to</small>
+        </div>
+        
+        <!-- Success/Error Messages -->
+        <div *ngIf="uploadSuccess" class="alert alert-success">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          PDF uploaded successfully! Finance team has been notified.
+        </div>
+        
+        <div *ngIf="uploadError" class="alert alert-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          {{ uploadError }}
+        </div>
+        
+        <!-- Upload Progress -->
+        <div *ngIf="isUploading" class="upload-progress">
+          <div class="progress-header">
+            <span class="progress-text">Uploading {{ currentUploadingFile }}</span>
+            <span class="progress-percentage">{{ uploadProgress }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="uploadProgress"></div>
+          </div>
+        </div>
+
+        <div class="upload-actions">
+          <button class="btn-upload" 
+                  (click)="uploadPdf()" 
+                  [disabled]="selectedFiles.length === 0 || isUploading">
+            <svg *ngIf="!isUploading" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg *ngIf="isUploading" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="spinning">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 2A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span *ngIf="!isUploading">Upload {{ selectedFiles.length }} PDF{{ selectedFiles.length > 1 ? 's' : '' }}</span>
+            <span *ngIf="isUploading">Uploading...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Uploaded PDFs Section -->
+  <div class="pdfs-section" *ngIf="uploadedPdfs().length > 0">
+    <div class="section-header">
+      <h2>Uploaded PDFs</h2>
+      <p class="section-subtitle">Your uploaded vendor documents</p>
+    </div>
+    
+    <div class="pdfs-grid">
+      <div class="pdf-card" *ngFor="let pdf of uploadedPdfs()">
+        <div class="pdf-header">
+          <div class="pdf-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="pdf-status" [class.processed]="pdf.processed">
+            <span *ngIf="!pdf.processed" class="status-pending">Pending</span>
+            <span *ngIf="pdf.processed" class="status-processed">Processed</span>
+          </div>
+        </div>
+        
+        <div class="pdf-content">
+          <h4 class="pdf-title">{{ pdf.originalFileName }}</h4>
+          <p *ngIf="pdf.description" class="pdf-description">{{ pdf.description }}</p>
+          
+          <div *ngIf="pdf.requisitionId" class="requisition-link">
+            <div class="link-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 13C10.4295 13.5741 10.9774 14.0491 11.6066 14.3929C12.2357 14.7367 12.9315 14.9411 13.6467 14.9923C14.3618 15.0435 15.0796 14.9403 15.7513 14.6897C16.4231 14.4392 17.0331 14.047 17.54 13.54L20.54 10.54C21.4508 9.59695 21.9548 8.33394 21.9434 7.02296C21.932 5.71198 21.4061 4.45791 20.4791 3.53087C19.5521 2.60383 18.298 2.07799 16.987 2.0666C15.676 2.0552 14.413 2.55918 13.47 3.47L11.75 5.18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 11C13.5705 10.4259 13.0226 9.95085 12.3934 9.60705C11.7643 9.26325 11.0685 9.05886 10.3533 9.00766C9.63816 8.95645 8.92037 9.05972 8.24861 9.31026C7.57685 9.5608 6.96684 9.953 6.46 10.46L3.46 13.46C2.54918 14.403 2.04519 15.666 2.05659 16.977C2.06798 18.288 2.59382 19.542 3.52086 20.4691C4.4479 21.3961 5.70197 21.922 7.01295 21.9334C8.32393 21.9448 9.58694 21.4408 10.53 20.53L12.24 18.82" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="link-details">
+              <span class="link-label">Linked to Requisition #{{ pdf.requisitionId }}</span>
+            </div>
+          </div>
+          
+          <div class="pdf-meta">
+            <span class="upload-date">{{ pdf.uploadedAt | date:'MMM dd, yyyy HH:mm' }}</span>
+            <span class="uploader">by {{ pdf.uploadedBy }}</span>
+          </div>
+        </div>
+        
+        <div class="pdf-actions">
+          <button class="btn-download" (click)="downloadPdf(pdf)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Download
+          </button>
+          
+          <button class="btn-delete" (click)="deletePdf(pdf)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="uploadedPdfs().length === 0">
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3>No PDFs uploaded yet</h3>
+    <p>Upload your first vendor document to get started</p>
+  </div>
+</div>

@@ -1,0 +1,56 @@
+package com.example.backend.api;
+
+import com.example.backend.service.AuthService;
+import com.example.backend.model.User;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/auth")
+@CrossOrigin(origins = "http://localhost:4200")
+public class AuthController {
+    private final AuthService authService;
+    
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+    
+    @PostMapping("/login")
+    public Map<String, Object> login(@RequestParam String username, @RequestParam String password) {
+        System.out.println("DEBUG: AuthController received login request for username: " + username);
+        Map<String, Object> result = authService.login(username, password);
+        System.out.println("DEBUG: AuthController returning login result: " + result);
+        return result;
+    }
+    
+    @PostMapping("/logout")
+    public Map<String, Object> logout(@RequestParam String sessionId) {
+        authService.logout(sessionId);
+        return Map.of("success", true, "message", "Logged out successfully");
+    }
+    
+    @GetMapping("/me")
+    public Map<String, Object> getCurrentUser(@RequestParam String sessionId) {
+        User user = authService.getCurrentUser(sessionId);
+        if (user != null) {
+            return Map.of(
+                "success", true,
+                "user", Map.of(
+                    "id", user.getId(),
+                    "username", user.getUsername(),
+                    "fullName", user.getFullName(),
+                    "role", user.getRole().name(),
+                    "department", user.getDepartment()
+                )
+            );
+        }
+        return Map.of("success", false, "message", "Invalid session");
+    }
+    
+    @GetMapping("/check-permission")
+    public Map<String, Object> checkPermission(@RequestParam String sessionId, @RequestParam String requiredRole) {
+        boolean hasPermission = authService.hasPermission(sessionId, requiredRole);
+        return Map.of("hasPermission", hasPermission);
+    }
+}

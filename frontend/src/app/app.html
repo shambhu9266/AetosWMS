@@ -1,0 +1,12 @@
+<!-- Login Page Layout -->
+<div *ngIf="!isLoggedIn()" class="login-layout">
+  <router-outlet></router-outlet>
+</div>
+
+<!-- Main App Layout -->
+<div *ngIf="isLoggedIn()" class="app-container">
+  <app-sidebar></app-sidebar>
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+  </div>

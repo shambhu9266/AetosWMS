@@ -1,0 +1,138 @@
+<div class="approvals">
+  <div class="page-header">
+    <h1 class="page-title">Approvals</h1>
+    <p class="page-subtitle">Review and approve purchase requisitions</p>
+  </div>
+
+  <div class="approval-tabs" *ngIf="canAccessITApprovals() || canAccessFinanceApprovals()">
+    <button class="tab-button" 
+            *ngIf="canAccessITApprovals()"
+            [class.active]="activeTab() === 'it'" 
+            (click)="setActiveTab('it')">
+      IT Manager Approvals
+    </button>
+    <button class="tab-button" 
+            *ngIf="canAccessFinanceApprovals()"
+            [class.active]="activeTab() === 'finance'" 
+            (click)="setActiveTab('finance')">
+      Finance Approvals
+    </button>
+  </div>
+
+  <!-- IT Approvals -->
+  <div *ngIf="activeTab() === 'it' && canAccessITApprovals()" class="approval-content">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Requester</th>
+            <th>Department</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of itPendings()">
+            <td>{{ item.id }}</td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyItem">
+                <div *ngFor="let reqItem of item.items; let isLast = last" class="item-row">
+                  {{ reqItem.itemName }}
+                  <span *ngIf="!isLast" class="item-separator">, </span>
+                </div>
+              </div>
+              <ng-template #legacyItem>
+                {{ item.itemName || 'N/A' }}
+              </ng-template>
+            </td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyQuantity">
+                {{ getTotalQuantity(item) }}
+              </div>
+              <ng-template #legacyQuantity>
+                {{ item.quantity || 0 }}
+              </ng-template>
+            </td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyPrice">
+                {{ formatCurrency(getRequisitionTotalAmount(item)) }}
+              </div>
+              <ng-template #legacyPrice>
+                {{ formatCurrency(item.price || 0) }}
+              </ng-template>
+            </td>
+            <td>{{ item.createdBy }}</td>
+            <td>{{ item.department }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-approve" (click)="itDecision(item.id, 'APPROVE')">Approve</button>
+                <button class="btn-reject" (click)="itDecision(item.id, 'REJECT')">Reject</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Finance Approvals -->
+  <div *ngIf="activeTab() === 'finance' && canAccessFinanceApprovals()" class="approval-content">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price</th>
+            <th>Requester</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of finPendings()">
+            <td>{{ item.id }}</td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyItem">
+                <div *ngFor="let reqItem of item.items; let isLast = last" class="item-row">
+                  {{ reqItem.itemName }}
+                  <span *ngIf="!isLast" class="item-separator">, </span>
+                </div>
+              </div>
+              <ng-template #legacyItem>
+                {{ item.itemName || 'N/A' }}
+              </ng-template>
+            </td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyQuantity">
+                {{ getTotalQuantity(item) }}
+              </div>
+              <ng-template #legacyQuantity>
+                {{ item.quantity || 0 }}
+              </ng-template>
+            </td>
+            <td>
+              <div *ngIf="item.items && item.items.length > 0; else legacyPrice">
+                {{ formatCurrency(getRequisitionTotalAmount(item)) }}
+              </div>
+              <ng-template #legacyPrice>
+                {{ formatCurrency(item.price || 0) }}
+              </ng-template>
+            </td>
+            <td>{{ item.createdBy }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-approve" (click)="financeDecision(item.id, 'APPROVE')">Approve</button>
+                <button class="btn-reject" (click)="financeDecision(item.id, 'REJECT')">Reject</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,434 @@
+<div class="purchase-orders-page">
+  <div class="page-header">
+    <h1 class="page-title">Purchase Orders</h1>
+    <p class="page-subtitle">Create and manage purchase orders for vendors</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="po-tabs">
+    <button class="tab-button" [class.active]="activeTab() === 'create'" (click)="setActiveTab('create')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Create PO
+    </button>
+    <button class="tab-button" [class.active]="activeTab() === 'list'" (click)="setActiveTab('list')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      View POs
+    </button>
+  </div>
+
+  <!-- Create PO Tab -->
+  <div *ngIf="activeTab() === 'create'" class="create-po-section">
+    <div class="create-po-card">
+      <div class="card-header">
+        <h3>Create New Purchase Order</h3>
+        <p class="card-description">Fill in the details to create a new purchase order</p>
+      </div>
+      
+      <form class="po-form" (ngSubmit)="createPurchaseOrder()">
+        <!-- Bill To Information -->
+        <div class="form-section">
+          <h4 class="section-title">🏢 Bill To Information</h4>
+          <div class="form-group">
+            <label for="billToCompany" class="form-label">Company Name *</label>
+            <input type="text" id="billToCompany" [(ngModel)]="poForm.billToCompany" name="billToCompany" 
+                   class="form-input" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="billToPAN" class="form-label">PAN Number *</label>
+              <input type="text" id="billToPAN" [(ngModel)]="poForm.billToPAN" name="billToPAN" 
+                     class="form-input" placeholder="Enter 10-digit PAN (e.g., ABCDE1234F)" 
+                     maxlength="10" pattern="[A-Z]{5}[0-9]{4}[A-Z]{1}" 
+                     (input)="formatPAN($event)" required>
+              <small class="form-hint">Format: ABCDE1234F (5 letters + 4 numbers + 1 letter)</small>
+            </div>
+            <div class="form-group">
+              <label for="billToGSTIN" class="form-label">GSTIN *</label>
+              <input type="text" id="billToGSTIN" [(ngModel)]="poForm.billToGSTIN" name="billToGSTIN" 
+                     class="form-input" placeholder="Enter 15-digit GSTIN (e.g., 07ABCDE1234F1Z5)" 
+                     maxlength="15" pattern="[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[A-Z0-9]{1}[Z]{1}[A-Z0-9]{1}" 
+                     (input)="formatGSTIN($event)" required>
+              <small class="form-hint">Format: 07ABCDE1234F1Z5 (2 state code + 10 PAN + 1 entity + 1 Z + 1 check digit)</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="billToAddress" class="form-label">Address *</label>
+            <textarea id="billToAddress" [(ngModel)]="poForm.billToAddress" name="billToAddress" 
+                      class="form-textarea" rows="2" required></textarea>
+          </div>
+        </div>
+
+        <!-- Vendor Information -->
+        <div class="form-section">
+          <h4 class="section-title">🏭 Vendor Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="vendorName" class="form-label">Vendor Name *</label>
+              <input type="text" id="vendorName" [(ngModel)]="poForm.vendorName" name="vendorName" 
+                     class="form-input" placeholder="Enter vendor name" required>
+            </div>
+            <div class="form-group">
+              <label for="vendorContactPerson" class="form-label">Contact Person *</label>
+              <input type="text" id="vendorContactPerson" [(ngModel)]="poForm.vendorContactPerson" name="vendorContactPerson" 
+                     class="form-input" placeholder="Enter contact person name" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="vendorAddress" class="form-label">Vendor Address *</label>
+            <textarea id="vendorAddress" [(ngModel)]="poForm.vendorAddress" name="vendorAddress" 
+                      class="form-textarea" rows="3" placeholder="Enter complete vendor address" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="vendorMobileNo" class="form-label">Mobile Number *</label>
+            <input type="text" id="vendorMobileNo" [(ngModel)]="poForm.vendorMobileNo" name="vendorMobileNo" 
+                   class="form-input" placeholder="Enter mobile number" required>
+          </div>
+        </div>
+
+        <!-- Ship To Information -->
+        <div class="form-section">
+          <h4 class="section-title">🚚 Ship To Information</h4>
+          <div class="form-group">
+            <label for="shipToAddress" class="form-label">Ship To Address *</label>
+            <textarea id="shipToAddress" [(ngModel)]="poForm.shipToAddress" name="shipToAddress" 
+                      class="form-textarea" rows="3" placeholder="Enter shipping address" required></textarea>
+          </div>
+        </div>
+
+        <!-- Order Details -->
+        <div class="form-section">
+          <h4 class="section-title">📋 Order Details</h4>
+          <div class="form-group">
+            <label for="scopeOfOrder" class="form-label">Scope of Order *</label>
+            <textarea id="scopeOfOrder" [(ngModel)]="poForm.scopeOfOrder" name="scopeOfOrder" 
+                      class="form-textarea" rows="2" placeholder="Enter scope of order" required></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="shippingMethod" class="form-label">Shipping Method *</label>
+              <select id="shippingMethod" [(ngModel)]="poForm.shippingMethod" name="shippingMethod" 
+                      class="form-select" required>
+                <option value="By Road">By Road</option>
+                <option value="By Air">By Air</option>
+                <option value="By Sea">By Sea</option>
+                <option value="By Rail">By Rail</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="shippingTerms" class="form-label">Shipping Terms *</label>
+              <input type="text" id="shippingTerms" [(ngModel)]="poForm.shippingTerms" name="shippingTerms" 
+                     class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label for="dateOfCompletion" class="form-label">Date of Completion *</label>
+              <input type="text" id="dateOfCompletion" [(ngModel)]="poForm.dateOfCompletion" name="dateOfCompletion" 
+                     class="form-input" required>
+            </div>
+          </div>
+        </div>
+
+        <!-- Line Items -->
+        <div class="form-section">
+          <h4 class="section-title">📦 Line Items</h4>
+          <div class="line-items-container">
+            <div class="line-items-header">
+              <div class="header-cell">Sr. No.</div>
+              <div class="header-cell">QTY/UNIT</div>
+              <div class="header-cell">DESCRIPTION</div>
+              <div class="header-cell">UNIT PRICE</div>
+              <div class="header-cell">AMOUNT (₹)</div>
+              <div class="header-cell">Action</div>
+            </div>
+            <div class="line-item" *ngFor="let item of poForm.lineItems; let i = index">
+              <div class="item-cell">{{ item.srNo }}</div>
+              <div class="item-cell">
+                <input type="text" [(ngModel)]="item.quantity" name="quantity_{{i}}" 
+                       class="form-input-small" placeholder="Qty" (blur)="updateLineItemAmount(i)">
+                <input type="text" [(ngModel)]="item.unit" name="unit_{{i}}" 
+                       class="form-input-small" placeholder="Unit">
+              </div>
+              <div class="item-cell">
+                <textarea [(ngModel)]="item.description" name="description_{{i}}" 
+                          class="form-textarea-small" rows="2" placeholder="Description"></textarea>
+              </div>
+              <div class="item-cell">
+                <input type="number" [(ngModel)]="item.unitPrice" name="unitPrice_{{i}}" 
+                       class="form-input-small" step="0.01" (blur)="updateLineItemAmount(i)">
+              </div>
+              <div class="item-cell amount-cell">{{ formatCurrency(item.amount) }}</div>
+              <div class="item-cell">
+                <button type="button" class="btn-remove" (click)="removeLineItem(i)" 
+                        [disabled]="poForm.lineItems.length === 1">×</button>
+              </div>
+            </div>
+            <div class="line-items-footer">
+              <button type="button" class="btn-add-item" (click)="addLineItem()">
+                + Add Line Item
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financial Summary -->
+        <div class="form-section">
+          <h4 class="section-title">💰 Financial Summary</h4>
+          <div class="financial-summary">
+            <div class="summary-row">
+              <span class="summary-label">Subtotal:</span>
+              <span class="summary-value">{{ formatCurrency(getSubtotalAmount()) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Freight Charges:</span>
+              <div class="summary-input">
+                <input type="number" [(ngModel)]="poForm.freightCharges" name="freightCharges" 
+                       class="form-input-small" step="0.01">
+              </div>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">GST Rate (%):</span>
+              <div class="summary-input">
+                <input type="number" [(ngModel)]="poForm.gstRate" name="gstRate" 
+                       class="form-input-small" step="0.01" min="0" max="100"
+                       (input)="onGstRateChange()">
+              </div>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">GST Amount:</span>
+              <span class="summary-value">{{ formatCurrency(getGstAmount()) }}</span>
+            </div>
+            <div class="summary-row total-row">
+              <span class="summary-label">Total Amount:</span>
+              <span class="summary-value total-amount">{{ formatCurrency(getTotalAmount()) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms & Conditions -->
+        <div class="form-section">
+          <h4 class="section-title">📝 Terms & Conditions</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="termsAndConditions" class="form-label">Terms & Conditions</label>
+              <textarea id="termsAndConditions" [(ngModel)]="poForm.termsAndConditions" name="termsAndConditions" 
+                        class="form-textarea" rows="3" placeholder="Enter terms and conditions"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="paymentTerms" class="form-label">Payment Terms</label>
+              <textarea id="paymentTerms" [(ngModel)]="poForm.paymentTerms" name="paymentTerms" 
+                        class="form-textarea" rows="3" placeholder="Enter payment terms"></textarea>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="warranty" class="form-label">Warranty</label>
+              <input type="text" id="warranty" [(ngModel)]="poForm.warranty" name="warranty" 
+                     class="form-input" placeholder="Enter warranty details">
+            </div>
+            <div class="form-group">
+              <label for="department" class="form-label">Department *</label>
+              <select id="department" [(ngModel)]="poForm.department" name="department" 
+                      class="form-select" required>
+                <option value="">Select Department</option>
+                <option value="IT">IT</option>
+                <option value="Finance">Finance</option>
+                <option value="HR">HR</option>
+                <option value="Operations">Operations</option>
+                <option value="Sales">Sales</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div *ngIf="createSuccess" class="alert alert-success">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Purchase Order created successfully!
+        </div>
+        
+        <div *ngIf="createError" class="alert alert-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          {{ createError }}
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" (click)="resetForm()">Reset Form</button>
+          <button type="submit" class="btn-primary" [disabled]="isCreating">
+            <svg *ngIf="!isCreating" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg *ngIf="isCreating" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="spinning">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 2A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span *ngIf="!isCreating">Create Purchase Order</span>
+            <span *ngIf="isCreating">Creating...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View POs Tab -->
+  <div *ngIf="activeTab() === 'list'" class="po-list-section">
+    <div class="po-list-header">
+      <h3>Purchase Orders</h3>
+      <p class="section-subtitle">Manage and track all purchase orders</p>
+    </div>
+    
+    <div class="po-list" *ngIf="purchaseOrders().length > 0">
+      <div class="po-item" *ngFor="let po of purchaseOrders()">
+        <div class="po-header">
+          <div class="po-number">
+            <h4>{{ po.poNumber }}</h4>
+            <span class="po-date">{{ po.createdAt | date:'MMM dd, yyyy' }}</span>
+          </div>
+          <div class="po-status">
+            <span class="status-badge" [class]="getStatusClass(po.status)">
+              {{ po.status.replace('_', ' ') }}
+            </span>
+          </div>
+        </div>
+        
+        <div class="po-content">
+          <div class="po-info">
+            <div class="info-row">
+              <span class="label">Vendor:</span>
+              <span class="value">{{ po.vendorName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Scope:</span>
+              <span class="value">{{ po.scopeOfOrder }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Department:</span>
+              <span class="value">{{ po.department }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Total Amount:</span>
+              <span class="value amount">{{ formatCurrency(po.totalAmount) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">PO Date:</span>
+              <span class="value">{{ po.poDate | date:'MMM dd, yyyy' }}</span>
+            </div>
+          </div>
+          
+          <div class="po-actions">
+            <div class="status-actions">
+              <label for="status-{{ po.id }}" class="status-label">Update Status:</label>
+              <select id="status-{{ po.id }}" class="status-select" 
+                      (change)="updatePOStatus(po, $any($event.target).value)">
+                <option *ngFor="let status of statusOptions" [value]="status.value" 
+                        [selected]="status.value === po.status">
+                  {{ status.label }}
+                </option>
+              </select>
+            </div>
+            <div class="action-buttons">
+              <button class="btn-email" (click)="openEmailModal(po)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Send Email
+              </button>
+              <button class="btn-download" (click)="downloadPDF(po)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Download PDF
+              </button>
+              <button *ngIf="po.status === 'DRAFT'" class="btn-delete" (click)="deletePurchaseOrder(po)">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div *ngIf="purchaseOrders().length === 0" class="empty-state">
+      <div class="empty-icon">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3>No Purchase Orders yet</h3>
+      <p>Create your first purchase order to get started</p>
+    </div>
+  </div>
+
+  <!-- Email Modal -->
+  <div *ngIf="showEmailModal" class="modal-overlay" (click)="closeEmailModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Send Purchase Order via Email</h3>
+        <button class="modal-close" (click)="closeEmailModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div *ngIf="selectedPO" class="po-info">
+          <h4>{{ selectedPO.poNumber }}</h4>
+          <p><strong>Vendor:</strong> {{ selectedPO.vendorName }}</p>
+          <p><strong>Total Amount:</strong> {{ formatCurrency(selectedPO.totalAmount) }}</p>
+        </div>
+        
+        <div class="form-group">
+          <label for="vendorEmail" class="form-label">Vendor Email Address *</label>
+          <input type="email" id="vendorEmail" [(ngModel)]="vendorEmail" name="vendorEmail" 
+                 class="form-input" placeholder="Enter vendor email address" required>
+        </div>
+        
+        <div *ngIf="emailSuccess" class="alert alert-success">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Purchase Order sent successfully!
+        </div>
+        
+        <div *ngIf="emailError" class="alert alert-error">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2"/>
+            <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          {{ emailError }}
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeEmailModal()">Cancel</button>
+        <button type="button" class="btn-primary" (click)="sendEmail()" [disabled]="isSendingEmail">
+          <svg *ngIf="!isSendingEmail" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg *ngIf="isSendingEmail" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="spinning">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 2A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <span *ngIf="!isSendingEmail">Send Email</span>
+          <span *ngIf="isSendingEmail">Sending...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

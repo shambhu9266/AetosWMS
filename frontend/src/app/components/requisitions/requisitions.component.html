@@ -1,0 +1,455 @@
+<div class="requisitions">
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Purchase Requisitions</h1>
+      <p class="page-subtitle" *ngIf="!authService.isEmployee()">Manage and track all purchase requisitions</p>
+      <p class="page-subtitle" *ngIf="authService.isEmployee()">Create and track your purchase requisitions</p>
+    </div>
+    <button class="btn-primary" (click)="openCreatePR()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Create New PR
+    </button>
+  </div>
+
+  <!-- Create PR Modal -->
+  <div *ngIf="showCreatePR()" class="modal-overlay" (click)="closeCreatePR()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Create Purchase Requisition</h3>
+        <button class="modal-close" (click)="closeCreatePR()">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h4 class="section-title">📋 Basic Information</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Requester</label>
+              <input type="text" [value]="createdBy()" (input)="onCreatedByInput($event)" placeholder="Enter user ID">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <select [value]="department()" (change)="onDepartmentInput($event)">
+                <option value="IT">IT</option>
+                <option value="HR">HR</option>
+                <option value="Finance">Finance</option>
+                <option value="Operations">Operations</option>
+                <option value="Marketing">Marketing</option>
+                <option value="Sales">Sales</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Items Section -->
+        <div class="items-section">
+          <div class="section-header">
+            <h4 class="section-title">🛒 Items</h4>
+            <button type="button" class="btn-add-item" (click)="addItem()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Add Item
+            </button>
+          </div>
+          
+          <div class="items-list">
+            <div *ngFor="let item of lineItems; let i = index; trackBy: trackByIndex" class="item-row">
+              <div class="item-number">{{ i + 1 }}</div>
+              <div class="item-fields">
+                <div class="form-group">
+                  <label>Item Name</label>
+                  <input type="text" 
+                         #itemNameInput
+                         [value]="item.itemName" 
+                         (input)="item.itemName = itemNameInput.value"
+                         placeholder="Enter item name">
+                </div>
+                <div class="form-group">
+                  <label>Quantity</label>
+                  <input type="number" 
+                         min="1" 
+                         #quantityInput
+                         [value]="item.quantity" 
+                         (input)="item.quantity = Number(quantityInput.value) || 1"
+                         placeholder="Qty">
+                </div>
+                <div class="form-group">
+                  <label>Price (₹)</label>
+                  <input type="number" 
+                         min="0" 
+                         step="0.01" 
+                         #priceInput
+                         [value]="item.price" 
+                         (input)="item.price = Number(priceInput.value) || 0"
+                         placeholder="Price">
+                </div>
+                <div class="form-group">
+                  <label>Total</label>
+                  <div class="total-display">{{ formatCurrency(item.quantity * item.price) }}</div>
+                </div>
+                <div class="form-group item-actions">
+                  <button type="button" 
+                          class="btn-remove-item" 
+                          (click)="removeItem(i)"
+                          [disabled]="lineItems.length === 1"
+                          title="Remove item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="items-summary">
+            <div class="summary-row">
+              <span class="summary-label">Total Items:</span>
+              <span class="summary-value">{{ lineItems.length }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Amount:</span>
+              <span class="summary-value total-amount">{{ formatCurrency(getTotalAmount()) }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- PDF Upload Section -->
+        <div class="pdf-upload-section">
+          <h4 class="section-title">📄 Attach Documents (Optional)</h4>
+          <div class="form-group">
+            <label for="pdfFile">Upload PDF Documents</label>
+            <div class="file-upload-container">
+              <input type="file" 
+                     id="pdfFile" 
+                     accept=".pdf" 
+                     multiple
+                     (change)="onFileSelected($event)"
+                     class="file-input">
+              <label for="pdfFile" class="file-upload-label">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span *ngIf="selectedFiles().length === 0">Choose PDF files</span>
+                <span *ngIf="selectedFiles().length > 0" class="file-selected">{{ selectedFiles().length }} file(s) selected</span>
+              </label>
+            </div>
+            
+            <!-- Selected Files List -->
+            <div class="selected-files-list" *ngIf="selectedFiles().length > 0">
+              <div class="file-item" *ngFor="let file of selectedFiles(); let i = index">
+                <div class="file-info">
+                  <div class="file-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="file-details">
+                    <p class="file-name">{{ file.name }}</p>
+                    <p class="file-size">{{ formatFileSize(file.size) }}</p>
+                  </div>
+                </div>
+                <button type="button" class="remove-file-btn" (click)="removeFile(i)" title="Remove file">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group" *ngIf="selectedFiles().length > 0">
+            <label for="pdfDescription">Document Description (Optional)</label>
+            <input type="text" 
+                   id="pdfDescription" 
+                   [value]="pdfDescription()" 
+                   (input)="onPdfDescriptionInput($event)"
+                   placeholder="Brief description of the documents">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeCreatePR()" [disabled]="isUploading()">Cancel</button>
+        <button class="btn-primary" (click)="createPR()" [disabled]="isUploading()">
+          <span *ngIf="!isUploading()">Create PR</span>
+          <span *ngIf="isUploading()">
+            <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
+              <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" class="opacity-75"></path>
+            </svg>
+            Uploading...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Requisitions Table -->
+  <div class="table-container">
+    <!-- Table Header for Employees -->
+    <div class="table-header" *ngIf="authService.isEmployee() && requisitions().length > 0">
+      <h3>Your Purchase Requisitions</h3>
+    </div>
+    
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Item</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th *ngIf="!authService.isEmployee()">Requester</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let req of requisitions()">
+          <td>{{ req.id }}</td>
+          <td>
+            <div *ngIf="req.items && req.items.length > 0; else legacyItem">
+              {{ getItemNames(req) }}
+            </div>
+            <ng-template #legacyItem>
+              {{ req.itemName || 'N/A' }}
+            </ng-template>
+          </td>
+          <td>
+            <div *ngIf="req.items && req.items.length > 0; else legacyQuantity">
+              {{ getTotalQuantity(req) }}
+            </div>
+            <ng-template #legacyQuantity>
+              {{ req.quantity || 0 }}
+            </ng-template>
+          </td>
+          <td>
+            <div *ngIf="req.items && req.items.length > 0; else legacyPrice">
+              {{ formatCurrency(getRequisitionTotalAmount(req)) }}
+            </div>
+            <ng-template #legacyPrice>
+              {{ formatCurrency(req.price || 0) }}
+            </ng-template>
+          </td>
+          <td *ngIf="!authService.isEmployee()">{{ req.createdBy }}</td>
+          <td>{{ req.department }}</td>
+          <td>
+            <span class="status-badge" [class]="getStatusClass(req.status)">
+              {{ req.status }}
+            </span>
+          </td>
+          <td>{{ req.createdAt | date:'short' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-sm btn-primary" (click)="viewRequisition(req)">View</button>
+                <!-- Show edit/delete based on permissions -->
+                <button *ngIf="canEditRequisition(req)" class="btn-sm btn-secondary" (click)="editRequisition(req)">Edit</button>
+                <button *ngIf="canDeleteRequisition(req)" class="btn-sm btn-danger" 
+                        (click)="deleteRequisition(req)" 
+                        title="Delete requisition">
+                  Delete
+                </button>
+              </div>
+            </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Employee Message (shown when no requisitions) -->
+  <div class="employee-message" *ngIf="authService.isEmployee() && requisitions().length === 0">
+    <div class="message-content">
+      <div class="message-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3>Create Your First Purchase Requisition</h3>
+      <p>You haven't created any purchase requisitions yet. Use the "Create New PR" button above to submit your first purchase request.</p>
+    </div>
+  </div>
+
+  <!-- Finance Manager Message (shown when no approved requisitions) -->
+  <div class="employee-message" *ngIf="authService.canAccessFinanceApprovals() && !authService.isEmployee() && requisitions().length === 0">
+    <div class="message-content">
+      <div class="message-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3>No Finance Requisitions</h3>
+      <p>There are currently no requisitions pending finance approval or approved by finance. Requisitions will appear here once they are submitted for finance review or have been approved.</p>
+      <div class="message-features">
+        <div class="feature">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>View pending approvals in the Approvals section</span>
+        </div>
+        <div class="feature">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Track all requisitions in the Dashboard</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div *ngIf="showViewModal()" class="modal-overlay" (click)="closeViewModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>View Requisition #{{ selectedRequisition()?.id }}</h3>
+      <button class="close-btn" (click)="closeViewModal()">&times;</button>
+    </div>
+    <div class="modal-body" *ngIf="selectedRequisition()">
+      <div class="requisition-details">
+        <div class="detail-row">
+          <label>Created By:</label>
+          <span>{{ selectedRequisition()?.createdBy }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Department:</label>
+          <span>{{ selectedRequisition()?.department }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Status:</label>
+          <span class="status-badge" [class]="getStatusClass(selectedRequisition()?.status || '')">
+            {{ selectedRequisition()?.status }}
+          </span>
+        </div>
+        <div class="detail-row">
+          <label>Created:</label>
+          <span>{{ selectedRequisition()?.createdAt | date:'medium' }}</span>
+        </div>
+      </div>
+      
+      <div class="items-section" *ngIf="selectedRequisition()?.items && (selectedRequisition()?.items?.length || 0) > 0">
+        <h4>Items ({{ selectedRequisition()?.items?.length }})</h4>
+        <div class="items-list">
+          <div class="item-detail" *ngFor="let item of selectedRequisition()?.items; let i = index">
+            <div class="item-number">{{ i + 1 }}</div>
+            <div class="item-info">
+              <div class="item-name">{{ item.itemName }}</div>
+              <div class="item-details">
+                <span>Qty: {{ item.quantity }}</span>
+                <span>Price: {{ formatCurrency(item.price) }}</span>
+                <span class="item-total">Total: {{ formatCurrency(item.quantity * item.price) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="total-section">
+          <strong>Total Amount: {{ formatCurrency(getRequisitionTotalAmount(selectedRequisition()!)) }}</strong>
+        </div>
+      </div>
+      
+      <div class="legacy-item" *ngIf="!selectedRequisition()?.items || (selectedRequisition()?.items?.length || 0) === 0">
+        <h4>Item Details</h4>
+        <div class="item-detail">
+          <div class="item-info">
+            <div class="item-name">{{ selectedRequisition()?.itemName || 'N/A' }}</div>
+            <div class="item-details">
+              <span>Qty: {{ selectedRequisition()?.quantity || 0 }}</span>
+              <span>Price: {{ formatCurrency(selectedRequisition()?.price || 0) }}</span>
+              <span class="item-total">Total: {{ formatCurrency((selectedRequisition()?.quantity || 0) * (selectedRequisition()?.price || 0)) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeViewModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div *ngIf="showEditModal()" class="modal-overlay" (click)="closeEditModal()">
+  <div class="modal-content edit-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Edit Requisition #{{ selectedRequisition()?.id }}</h3>
+      <button class="close-btn" (click)="closeEditModal()">&times;</button>
+    </div>
+    <div class="modal-body" *ngIf="selectedRequisition()">
+      <form (ngSubmit)="saveRequisition()" #editForm="ngForm">
+        <div class="form-section">
+          <h4>Basic Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Created By:</label>
+              <input type="text" [(ngModel)]="editFormData.createdBy" name="createdBy" readonly>
+            </div>
+            <div class="form-group">
+              <label>Department:</label>
+              <select [(ngModel)]="editFormData.department" name="department" required>
+                <option value="IT">IT</option>
+                <option value="Sales">Sales</option>
+                <option value="Management">Management</option>
+                <option value="Finance">Finance</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-section">
+          <h4>Items</h4>
+          <div class="items-edit-list">
+            <div class="item-edit-row" *ngFor="let item of editFormData.items; let i = index">
+              <div class="item-number">{{ i + 1 }}</div>
+              <div class="item-edit-fields">
+                <div class="form-group">
+                  <label>Item Name</label>
+                  <input type="text" [(ngModel)]="item.itemName" name="itemName{{i}}" required>
+                </div>
+                <div class="form-group">
+                  <label>Quantity</label>
+                  <input type="number" [(ngModel)]="item.quantity" name="quantity{{i}}" min="1" required>
+                </div>
+                <div class="form-group">
+                  <label>Price</label>
+                  <input type="number" [(ngModel)]="item.price" name="price{{i}}" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                  <label>Total</label>
+                  <div class="total-display">{{ formatCurrency(item.quantity * item.price) }}</div>
+                </div>
+                <div class="form-group">
+                  <button type="button" class="btn-remove" (click)="removeEditItem(i)" 
+                          [disabled]="editFormData.items.length === 1">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn-add-item" (click)="addEditItem()">
+            + Add Item
+          </button>
+        </div>
+        
+        <div class="total-section">
+          <strong>Total Amount: {{ formatCurrency(getEditTotalAmount()) }}</strong>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+      <button class="btn-primary" (click)="saveRequisition()" [disabled]="!isEditFormValid()">
+        Save Changes
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,158 @@
+import { Injectable, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+
+export interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  role: string;
+  department: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  sessionId?: string;
+  user?: User;
+  message?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private baseUrl = 'http://localhost:8080/api/auth';
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  private sessionIdSubject = new BehaviorSubject<string | null>(null);
+
+  public currentUser$ = this.currentUserSubject.asObservable();
+  public sessionId$ = this.sessionIdSubject.asObservable();
+
+  constructor(private http: HttpClient) {
+    // Check if user is already logged in (from localStorage)
+    const savedSessionId = localStorage.getItem('sessionId');
+    const savedUser = localStorage.getItem('currentUser');
+    
+    if (savedSessionId && savedUser) {
+      this.sessionIdSubject.next(savedSessionId);
+      this.currentUserSubject.next(JSON.parse(savedUser));
+    }
+  }
+
+  login(username: string, password: string): Observable<LoginResponse> 
+  {
+    const params = new HttpParams()
+      .set('username', username)
+      .set('password', password);
+
+    console.log('DEBUG: Attempting login for user:', username);
+    return this.http.post<LoginResponse>(`${this.baseUrl}/login`, null, { params })
+      .pipe(
+        tap(response => {
+          console.log('DEBUG: Login response:', response);
+          if (response.success && response.sessionId && response.user) {
+            this.sessionIdSubject.next(response.sessionId);
+            this.currentUserSubject.next(response.user);
+            
+            // Save to localStorage
+            localStorage.setItem('sessionId', response.sessionId);
+            localStorage.setItem('currentUser', JSON.stringify(response.user));
+            console.log('DEBUG: Session saved:', response.sessionId);
+          } else {
+            console.log('DEBUG: Login failed:', response.message);
+          }
+        })
+      );
+  }
+
+  logout(): Observable<any> {
+    const sessionId = this.sessionIdSubject.value;
+    
+    // Always clear the session first
+    this.clearSession();
+    
+    if (sessionId) {
+      const params = new HttpParams().set('sessionId', sessionId);
+      return this.http.post(`${this.baseUrl}/logout`, null, { params })
+        .pipe(
+          tap(() => {
+            console.log('Logout successful');
+          }),
+          catchError((error) => {
+            console.error('Logout error:', error);
+            // Even if backend logout fails, we've already cleared the session
+            return of({ success: true });
+          })
+        );
+    }
+    return new Observable(observer => {
+      observer.next({ success: true });
+      observer.complete();
+    });
+  }
+
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  getSessionId(): string | null {
+    const sessionId = this.sessionIdSubject.value;
+    console.log('DEBUG: getSessionId called, returning:', sessionId);
+    return sessionId;
+  }
+
+  isLoggedIn(): boolean {
+    return this.currentUserSubject.value !== null;
+  }
+
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser();
+    console.log('DEBUG hasRole: Checking role:', role);
+    console.log('DEBUG hasRole: User role:', user?.role);
+    console.log('DEBUG hasRole: Direct comparison:', user?.role === role);
+    console.log('DEBUG hasRole: Is SUPERADMIN:', user?.role === 'SUPERADMIN');
+    
+    const result = user?.role === role || user?.role === 'SUPERADMIN';
+    console.log('DEBUG hasRole: Final result:', result);
+    return result;
+  }
+
+  canAccessITApprovals(): boolean {
+    return this.hasRole('IT_MANAGER') || this.hasRole('SUPERADMIN');
+  }
+
+  canAccessFinanceApprovals(): boolean {
+    return this.hasRole('FINANCE_MANAGER') || this.hasRole('SUPERADMIN');
+  }
+
+  canAccessBudget(): boolean {
+    const user = this.getCurrentUser();
+    console.log('DEBUG AuthService: Current user for budget check:', user);
+    console.log('DEBUG AuthService: User role:', user?.role);
+    console.log('DEBUG AuthService: Role type:', typeof user?.role);
+    console.log('DEBUG AuthService: Is FINANCE_MANAGER?', user?.role === 'FINANCE_MANAGER');
+    
+    // Only FINANCE_MANAGER can access budget (SUPERADMIN excluded)
+    const result = user?.role === 'FINANCE_MANAGER';
+    console.log('DEBUG AuthService: Budget access result:', result);
+    return result;
+  }
+
+  isEmployee(): boolean {
+    const user = this.getCurrentUser();
+    return user?.role === 'EMPLOYEE';
+  }
+
+  canCreateRequisitions(): boolean {
+    // All logged-in users can create requisitions
+    return this.isLoggedIn();
+  }
+
+  clearSession(): void {
+    this.currentUserSubject.next(null);
+    this.sessionIdSubject.next(null);
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('currentUser');
+  }
+}
