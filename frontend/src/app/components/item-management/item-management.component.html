@@ -1,0 +1,265 @@
+<div class="item-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Item Management</h1>
+      <p>Manage procurement items, inventory, and stock levels</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="showAddForm = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Add Item
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20C20.55 4 21 4.45 21 5S20.55 6 20 6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4C3.45 6 3 5.55 3 5S3.45 4 4 4H7ZM9 3V4H15V3H9ZM7 6V19H17V6H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ items.length }}</div>
+        <div class="stat-label">Total Items</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getActiveItems() }}</div>
+        <div class="stat-label">Active Items</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2V22M17 5H9.5C8.11929 5 7 6.11929 7 7.5S8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5S15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">${{ getTotalValue() | number:'1.0-0' }}</div>
+        <div class="stat-label">Total Value</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getLowStockItems() }}</div>
+        <div class="stat-label">Low Stock</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div class="form-section" *ngIf="showAddForm">
+    <div class="form-card">
+      <div class="form-header">
+        <h3>{{ editingItem ? 'Edit Item' : 'Add New Item' }}</h3>
+        <button class="btn btn-secondary" (click)="resetForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <form (ngSubmit)="editingItem ? updateItem() : addItem()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Item Name</label>
+            <input 
+              type="text" 
+              id="name" 
+              [(ngModel)]="formData.name" 
+              name="name" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select 
+              id="category" 
+              [(ngModel)]="formData.category" 
+              name="category" 
+              required
+            >
+              <option value="">Select Category</option>
+              <option value="IT Equipment">IT Equipment</option>
+              <option value="Office Supplies">Office Supplies</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Cleaning">Cleaning</option>
+              <option value="Security">Security</option>
+              <option value="Kitchen">Kitchen</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="unit">Unit</label>
+            <select 
+              id="unit" 
+              [(ngModel)]="formData.unit" 
+              name="unit" 
+              required
+            >
+              <option value="">Select Unit</option>
+              <option value="Piece">Piece</option>
+              <option value="Set">Set</option>
+              <option value="Ream">Ream</option>
+              <option value="Kit">Kit</option>
+              <option value="Box">Box</option>
+              <option value="Pack">Pack</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="price">Price</label>
+            <input 
+              type="number" 
+              id="price" 
+              [(ngModel)]="formData.price" 
+              name="price" 
+              min="0" 
+              step="0.01"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="supplier">Supplier</label>
+            <input 
+              type="text" 
+              id="supplier" 
+              [(ngModel)]="formData.supplier" 
+              name="supplier" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="stockQuantity">Stock Quantity</label>
+            <input 
+              type="number" 
+              id="stockQuantity" 
+              [(ngModel)]="formData.stockQuantity" 
+              name="stockQuantity" 
+              min="0"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="minStockLevel">Min Stock Level</label>
+            <input 
+              type="number" 
+              id="minStockLevel" 
+              [(ngModel)]="formData.minStockLevel" 
+              name="minStockLevel" 
+              min="0"
+              required
+            >
+          </div>
+          <div class="form-group full-width">
+            <label for="description">Description</label>
+            <textarea 
+              id="description" 
+              [(ngModel)]="formData.description" 
+              name="description" 
+              rows="3"
+              required
+            ></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            {{ editingItem ? 'Update Item' : 'Add Item' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3>Items</h3>
+      <div class="table-actions">
+        <input type="text" placeholder="Search items..." class="search-input">
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Unit</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of items">
+            <td>
+              <div class="item-info">
+                <div class="item-name">{{ item.name }}</div>
+                <div class="item-description">{{ item.description }}</div>
+                <div class="item-supplier">Supplier: {{ item.supplier }}</div>
+              </div>
+            </td>
+            <td>
+              <span class="category-badge">{{ item.category }}</span>
+            </td>
+            <td>{{ item.unit }}</td>
+            <td>${{ item.price | number:'1.2-2' }}</td>
+            <td>
+              <div class="stock-info">
+                <div class="stock-quantity">{{ item.stockQuantity }}</div>
+                <div class="stock-level" [class]="'stock-' + getStockStatus(item)">
+                  {{ getStockStatus(item) | titlecase }}
+                </div>
+                <div class="min-stock">Min: {{ item.minStockLevel }}</div>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="item.active" [class.inactive]="!item.active">
+                {{ item.active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-primary" (click)="editItem(item)" title="Edit">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="btn btn-sm btn-warning" (click)="toggleItemStatus(item)" [title]="item.active ? 'Deactivate' : 'Activate'">
+                  <svg *ngIf="item.active" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <svg *ngIf="!item.active" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deleteItem(item)" title="Delete">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

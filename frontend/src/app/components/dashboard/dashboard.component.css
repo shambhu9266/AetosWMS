@@ -1996,6 +1996,7 @@
 .action-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border: none;
@@ -2007,6 +2008,8 @@
   text-decoration: none;
   position: relative;
   overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .action-btn::before {
@@ -2029,46 +2032,46 @@
   box-shadow: 0 8px 25px 0 rgba(0, 0, 0, 0.15);
 }
 
-.action-btn.download {
+.action-btn.primary {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: white;
   box-shadow: 0 4px 15px 0 rgba(59, 130, 246, 0.3);
 }
 
-.action-btn.download:hover {
+.action-btn.primary:hover {
   background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
   box-shadow: 0 8px 25px 0 rgba(59, 130, 246, 0.4);
 }
 
-.action-btn.approve {
+.action-btn.success {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   box-shadow: 0 4px 15px 0 rgba(16, 185, 129, 0.3);
 }
 
-.action-btn.approve:hover {
+.action-btn.success:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   box-shadow: 0 8px 25px 0 rgba(16, 185, 129, 0.4);
 }
 
-.action-btn.reject {
+.action-btn.warning {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
   box-shadow: 0 4px 15px 0 rgba(239, 68, 68, 0.3);
 }
 
-.action-btn.reject:hover {
+.action-btn.warning:hover {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   box-shadow: 0 8px 25px 0 rgba(239, 68, 68, 0.4);
 }
 
-.action-btn.delete {
+.action-btn.danger {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
   color: white;
   box-shadow: 0 4px 15px 0 rgba(107, 114, 128, 0.3);
 }
 
-.action-btn.delete:hover {
+.action-btn.danger:hover {
   background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
   box-shadow: 0 8px 25px 0 rgba(107, 114, 128, 0.4);
 }

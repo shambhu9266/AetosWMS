@@ -3,10 +3,15 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "ng serve --host 0.0.0.0 --port 4200 --disable-host-check",
+    "start:prod": "ng serve --configuration production --host 0.0.0.0 --port 4200 --disable-host-check",
+    "build": "ng build --configuration production --aot --build-optimizer --optimization --source-map=false",
+    "build:dev": "ng build --configuration development",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:ci": "ng test --watch=false --browsers=ChromeHeadless",
+    "lint": "ng lint",
+    "analyze": "ng build --configuration production --stats-json && npx webpack-bundle-analyzer dist/frontend/stats.json"
   },
   "prettier": {
     "printWidth": 100,
@@ -28,11 +33,16 @@
     "@angular/forms": "^20.2.0",
     "@angular/platform-browser": "^20.2.0",
     "@angular/router": "^20.2.0",
+    "@angular/service-worker": "^20.2.0",
     "chart.js": "^4.5.0",
     "ng2-charts": "^8.0.0",
+    "ngx-toastr": "^19.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "workbox-webpack-plugin": "^7.0.0",
+    "compression": "^1.7.4",
+    "helmet": "^7.1.0"
   },
   "devDependencies": {
     "@angular/build": "^20.2.2",

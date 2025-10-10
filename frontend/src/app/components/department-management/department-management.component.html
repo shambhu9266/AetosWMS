@@ -1,0 +1,220 @@
+<div class="department-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Department Management</h1>
+      <p>Manage organizational departments and their configurations</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="showAddForm = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Add Department
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 21V19C19 16.7909 17.2091 15 15 15H9C6.79086 15 5 16.7909 5 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7ZM12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ departments.length }}</div>
+        <div class="stat-label">Total Departments</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getActiveDepartments() }}</div>
+        <div class="stat-label">Active Departments</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2V22M17 5H9.5C8.11929 5 7 6.11929 7 7.5S8.11929 10 9.5 10H14.5C15.8807 10 17 11.1193 17 12.5S15.8807 15 14.5 15H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">${{ getTotalBudget() | number:'1.0-0' }}</div>
+        <div class="stat-label">Total Budget</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div class="form-section" *ngIf="showAddForm">
+    <div class="form-card">
+      <div class="form-header">
+        <h3>{{ getFormTitle() }}</h3>
+        <button class="btn btn-secondary" (click)="resetForm()" [disabled]="loading">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <form (ngSubmit)="editingDepartment ? updateDepartment() : addDepartment()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Department Name *</label>
+            <input 
+              type="text" 
+              id="name" 
+              [(ngModel)]="formData.name" 
+              name="name" 
+              required
+              [disabled]="loading"
+            >
+          </div>
+          <div class="form-group">
+            <label for="managerName">Manager Name</label>
+            <input 
+              type="text" 
+              id="managerName" 
+              [(ngModel)]="formData.managerName" 
+              name="managerName" 
+              [disabled]="loading"
+            >
+          </div>
+          <div class="form-group">
+            <label for="managerUsername">Manager Username</label>
+            <input 
+              type="text" 
+              id="managerUsername" 
+              [(ngModel)]="formData.managerUsername" 
+              name="managerUsername" 
+              [disabled]="loading"
+              placeholder="Username of department manager"
+            >
+          </div>
+          <div class="form-group">
+            <label for="budget">Budget</label>
+            <input 
+              type="number" 
+              id="budget" 
+              [(ngModel)]="formData.budget" 
+              name="budget" 
+              [disabled]="loading"
+              min="0"
+              step="0.01"
+            >
+          </div>
+          <div class="form-group full-width">
+            <label for="description">Description *</label>
+            <textarea 
+              id="description" 
+              [(ngModel)]="formData.description" 
+              name="description" 
+              rows="3"
+              required
+              [disabled]="loading"
+            ></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="loading">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="loading">Processing...</span>
+            <span *ngIf="!loading">{{ getSubmitButtonText() }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Departments Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3>Departments</h3>
+      <div class="table-actions">
+        <input type="text" placeholder="Search departments..." class="search-input">
+      </div>
+    </div>
+    <div class="table-container">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading departments...</p>
+      </div>
+      
+      <!-- Empty State -->
+      <div *ngIf="!loading && departments.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 21V19C19 16.7909 17.2091 15 15 15H9C6.79086 15 5 16.7909 5 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7ZM12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h4>No Departments Found</h4>
+        <p>Start by adding your first department to get started.</p>
+        <button class="btn btn-primary" (click)="showAddForm = true">Add Department</button>
+      </div>
+      
+      <!-- Data Table -->
+      <table *ngIf="!loading && departments.length > 0" class="data-table">
+        <thead>
+          <tr>
+            <th>Department Name</th>
+            <th>Manager</th>
+            <th>Budget</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let department of departments">
+            <td>
+              <div class="department-info">
+                <div class="department-name">{{ department.name }}</div>
+                <div class="department-description">{{ department.description }}</div>
+              </div>
+            </td>
+            <td>
+              <div *ngIf="department.manager; else noManager">
+                <div class="manager-name">{{ department.manager }}</div>
+                <div *ngIf="department.managerUsername" class="manager-username">@{{ department.managerUsername }}</div>
+              </div>
+              <ng-template #noManager>
+                <span class="text-muted">No manager assigned</span>
+              </ng-template>
+            </td>
+            <td>
+              <span *ngIf="department.budget; else noBudget">${{ department.budget | number:'1.0-0' }}</span>
+              <ng-template #noBudget>
+                <span class="text-muted">No budget set</span>
+              </ng-template>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="department.active" [class.inactive]="!department.active">
+                {{ department.active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-primary" (click)="editDepartment(department)" title="Edit" [disabled]="loading">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deleteDepartment(department)" title="Delete" [disabled]="loading">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -22,8 +22,23 @@
 }
 
 .login-header {
-  text-align: center;
+  text-align: center; 
   margin-bottom: 2rem;
+}
+
+.logo-container {
+  margin-bottom: 0.25rem;
+}
+
+.logo {
+  width: 140px;
+  height: 100px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .login-title {
@@ -114,5 +129,10 @@
   
   .login-title {
     font-size: 1.5rem;
+  }
+  
+  .logo {
+    width: 100px;
+    height: 100px;
   }
 }

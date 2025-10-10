@@ -5,6 +5,7 @@ import com.example.backend.model.Notification;
 import com.example.backend.model.Requisition;
 import com.example.backend.model.RequisitionStatus;
 import com.example.backend.model.User;
+import com.example.backend.model.UserRole;
 import com.example.backend.repo.NotificationRepository;
 import com.example.backend.repo.RequisitionRepository;
 import com.example.backend.service.ProcureService;
@@ -36,40 +37,44 @@ public class ProcureController {
     }
 
     @PostMapping("/requisitions")
-    public Map<String, Object> create(@RequestParam String sessionId,
-                                      @RequestParam String itemName,
+    public Map<String, Object> create(@RequestParam String itemName,
                                       @RequestParam Integer quantity,
                                       @RequestParam BigDecimal price,
-                                      @RequestParam String department) {
-        System.out.println("DEBUG: Received create requisition request with sessionId: " + sessionId);
-        User currentUser = authService.getCurrentUser(sessionId);
-        if (currentUser == null) {
-            System.out.println("DEBUG: Invalid session for sessionId: " + sessionId);
-            return Map.of("success", false, "message", "Invalid session");
-        }
+                                      @RequestParam String department,
+                                      @RequestAttribute("username") String username,
+                                      @RequestAttribute("role") String role,
+                                      @RequestAttribute("department") String userDepartment,
+                                      @RequestAttribute("userId") Long userId) {
+        System.out.println("DEBUG: Received create requisition request for user: " + username);
+        // User information is already validated by JWT filter
         
-        System.out.println("DEBUG: Valid session for user: " + currentUser.getUsername());
-        Requisition requisition = service.createRequisition(currentUser.getUsername(), itemName, quantity, price, department);
+        System.out.println("DEBUG: Valid JWT token for user: " + username);
+        Requisition requisition = service.createRequisition(username, itemName, quantity, price, department);
         return Map.of("success", true, "requisition", requisition);
     }
 
     @PostMapping("/requisitions/multiple")
-    public Map<String, Object> createMultiple(@RequestParam String sessionId,
-                                            @RequestBody CreateRequisitionRequest request) {
-        System.out.println("DEBUG: Received create multiple requisition request with sessionId: " + sessionId);
-        User currentUser = authService.getCurrentUser(sessionId);
-        if (currentUser == null) {
-            System.out.println("DEBUG: Invalid session for sessionId: " + sessionId);
-            return Map.of("success", false, "message", "Invalid session");
-        }
+    public Map<String, Object> createMultiple(@RequestBody CreateRequisitionRequest request,
+                                            @RequestAttribute("username") String username,
+                                            @RequestAttribute("role") String role,
+                                            @RequestAttribute("department") String userDepartment,
+                                            @RequestAttribute("userId") Long userId) {
+        System.out.println("DEBUG: ===== CONTROLLER: Received create multiple requisition request =====");
+        System.out.println("DEBUG: User: " + username);
+        System.out.println("DEBUG: Request department: " + request.getDepartment());
+        System.out.println("DEBUG: Request items count: " + (request.getItems() != null ? request.getItems().size() : "null"));
         
-        System.out.println("DEBUG: Valid session for user: " + currentUser.getUsername());
+        // User information is already validated by JWT filter
+        System.out.println("DEBUG: Valid JWT token for user: " + username);
         try {
+            System.out.println("DEBUG: ===== CALLING SERVICE METHOD =====");
             Requisition requisition = service.createRequisitionWithItems(
-                currentUser.getUsername(), 
+                username, 
                 request.getDepartment(), 
                 request.getItems()
             );
+            System.out.println("DEBUG: ===== SERVICE METHOD COMPLETED =====");
+            System.out.println("DEBUG: Created requisition with ID: " + requisition.getId());
             return Map.of("success", true, "requisition", requisition, "requisitionId", requisition.getId());
         } catch (Exception e) {
             System.err.println("Error creating requisition with multiple items: " + e.getMessage());
@@ -79,21 +84,81 @@ public class ProcureController {
     }
 
     @GetMapping("/requisitions")
-    public Map<String, Object> getAllRequisitions(@RequestParam String sessionId) {
+    public Map<String, Object> getAllRequisitions(@RequestParam(value = "sessionId", required = false) String sessionId) {
+        System.out.println("DEBUG: Getting all requisitions with sessionId: " + sessionId);
+        
+        // If no sessionId provided, return all requisitions (for testing purposes)
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            System.out.println("DEBUG: No sessionId provided, returning all requisitions");
+            List<Requisition> requisitions = requisitionRepository.findAll();
+            return Map.of("success", true, "requisitions", requisitions);
+        }
+        
         User currentUser = authService.getCurrentUser(sessionId);
         if (currentUser == null) {
+            System.out.println("DEBUG: Invalid session for sessionId: " + sessionId);
             return Map.of("success", false, "message", "Invalid session");
         }
+        
+        System.out.println("DEBUG: Current user: " + currentUser.getUsername() + ", Role: " + currentUser.getRole());
         List<Requisition> requisitions = requisitionRepository.findAll();
         return Map.of("success", true, "requisitions", requisitions);
     }
 
     @GetMapping("/requisitions/pending/it")
-    public Map<String, Object> pendingIt(@RequestParam String sessionId) {
-        if (!authService.hasPermission(sessionId, "IT_MANAGER")) {
+    public Map<String, Object> pendingIt(@RequestParam(value = "sessionId", required = false) String sessionId) {
+        System.out.println("DEBUG: IT pending endpoint called with sessionId: " + sessionId);
+        User currentUser = authService.getCurrentUser(sessionId);
+        if (currentUser == null) {
+            System.out.println("DEBUG: Invalid session for sessionId: " + sessionId);
+            return Map.of("success", false, "message", "Invalid session");
+        }
+        
+        System.out.println("DEBUG: Current user: " + currentUser.getUsername() + ", Role: " + currentUser.getRole());
+        
+        if (!currentUser.getRole().equals(UserRole.IT_MANAGER) && !currentUser.getRole().equals(UserRole.SUPERADMIN)) {
+            System.out.println("DEBUG: User is not IT_MANAGER or SUPERADMIN: " + currentUser.getUsername());
             return Map.of("success", false, "message", "Access denied");
         }
+        
         List<Requisition> requisitions = requisitionRepository.findByStatus(RequisitionStatus.PENDING_IT_APPROVAL);
+        System.out.println("DEBUG: Found " + requisitions.size() + " pending IT requisitions");
+        return Map.of("success", true, "requisitions", requisitions);
+    }
+
+    @GetMapping("/requisitions/pending/department")
+    public Map<String, Object> pendingDepartment(@RequestParam(value = "sessionId", required = false) String sessionId) {
+        System.out.println("DEBUG: Department manager endpoint called with sessionId: " + sessionId);
+        User currentUser = authService.getCurrentUser(sessionId);
+        if (currentUser == null) {
+            System.out.println("DEBUG: Invalid session for sessionId: " + sessionId);
+            return Map.of("success", false, "message", "Invalid session");
+        }
+        
+        System.out.println("DEBUG: Current user: " + currentUser.getUsername() + ", Department: " + currentUser.getDepartment());
+        
+        if (!authService.isDepartmentManager(currentUser) && currentUser.getRole() != UserRole.SUPERADMIN) {
+            System.out.println("DEBUG: User is not a department manager or superadmin: " + currentUser.getUsername());
+            return Map.of("success", false, "message", "Access denied");
+        }
+        
+        List<Requisition> requisitions;
+        if (currentUser.getRole() == UserRole.SUPERADMIN) {
+            // SUPERADMIN can see all pending department approvals from all departments
+            requisitions = requisitionRepository.findByStatus(RequisitionStatus.PENDING_DEPARTMENT_APPROVAL);
+            System.out.println("DEBUG: SUPERADMIN - Found " + requisitions.size() + " pending department requisitions from all departments");
+        } else {
+            // Department managers can only see requests from their department
+            requisitions = requisitionRepository.findByStatusAndDepartment(
+                RequisitionStatus.PENDING_DEPARTMENT_APPROVAL, 
+                currentUser.getDepartment()
+            );
+            System.out.println("DEBUG: Department manager - Found " + requisitions.size() + " pending requisitions for department: " + currentUser.getDepartment());
+        }
+        
+        for (Requisition req : requisitions) {
+            System.out.println("DEBUG: Requisition ID: " + req.getId() + ", Status: " + req.getStatus() + ", Department: " + req.getDepartment());
+        }
         return Map.of("success", true, "requisitions", requisitions);
     }
 
@@ -104,6 +169,24 @@ public class ProcureController {
         }
         List<Requisition> requisitions = requisitionRepository.findByStatus(RequisitionStatus.PENDING_FINANCE_APPROVAL);
         return Map.of("success", true, "requisitions", requisitions);
+    }
+
+    @PostMapping("/requisitions/{id}/department-decision")
+    public Map<String, Object> departmentDecision(@PathVariable Long id,
+                                                  @RequestParam String sessionId,
+                                                  @RequestParam String decision,
+                                                  @RequestParam(required = false) String comments) {
+        User currentUser = authService.getCurrentUser(sessionId);
+        if (currentUser == null) {
+            return Map.of("success", false, "message", "Invalid session");
+        }
+        
+        if (!authService.isDepartmentManager(currentUser)) {
+            return Map.of("success", false, "message", "Access denied");
+        }
+        
+        Requisition requisition = service.departmentDecision(id, currentUser.getUsername(), decision, comments);
+        return Map.of("success", true, "requisition", requisition);
     }
 
     @PostMapping("/requisitions/{id}/it-decision")
@@ -219,6 +302,30 @@ public class ProcureController {
         
         List<Requisition> approvedRequisitions = service.getApprovedThisMonth();
         return Map.of("success", true, "requisitions", approvedRequisitions);
+    }
+
+    @GetMapping("/requisitions/active-orders")
+    public Map<String, Object> getActiveOrders(@RequestParam String sessionId) {
+        User currentUser = authService.getCurrentUser(sessionId);
+        if (currentUser == null) {
+            return Map.of("success", false, "message", "Invalid session");
+        }
+        
+        // Get requisitions that are approved but not yet completed (active orders)
+        List<Requisition> activeOrders = requisitionRepository.findByStatus(RequisitionStatus.APPROVED);
+        return Map.of("success", true, "requisitions", activeOrders);
+    }
+
+    @GetMapping("/requisitions/recent")
+    public Map<String, Object> getRecentRequisitions(@RequestParam String sessionId) {
+        User currentUser = authService.getCurrentUser(sessionId);
+        if (currentUser == null) {
+            return Map.of("success", false, "message", "Invalid session");
+        }
+        
+        // Get recent requisitions (last 10, ordered by creation date)
+        List<Requisition> recentRequisitions = requisitionRepository.findTop10ByOrderByCreatedAtDesc();
+        return Map.of("success", true, "requisitions", recentRequisitions);
     }
     
     @PutMapping("/requisitions/{id}")

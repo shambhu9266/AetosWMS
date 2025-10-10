@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ApiService, Notification } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-notifications',
@@ -17,7 +18,8 @@ export class NotificationsComponent implements OnInit {
 
   constructor(
     private apiService: ApiService,
-    public authService: AuthService
+    public authService: AuthService,
+    private alertService: AlertService
   ) {}
 
   ngOnInit() {
@@ -72,15 +74,15 @@ export class NotificationsComponent implements OnInit {
       this.apiService.deleteNotification(notification.notificationId).subscribe({
         next: (response) => {
           if (response.success) {
-            alert('Notification deleted successfully!');
+            this.alertService.showError('Notification deleted successfully!');
             this.loadNotifications(); // Reload notifications list
           } else {
-            alert('Failed to delete notification: ' + response.message);
+            this.alertService.showError('Failed to delete notification: ' + response.message);
           }
         },
         error: (error) => {
           console.error('Error deleting notification:', error);
-          alert('Failed to delete notification. Please try again.');
+          this.alertService.showError('Failed to delete notification. Please try again.');
         }
       });
     }

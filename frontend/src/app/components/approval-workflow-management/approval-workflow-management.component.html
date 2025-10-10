@@ -1,0 +1,153 @@
+<div class="approval-workflow-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Approval Workflow Management</h1>
+      <p>Select a department to view and configure its approval steps</p>
+    </div>
+  </div>
+
+  <!-- Department Selection -->
+  <div class="department-selection">
+    <div class="selection-card">
+      <h3>Select Department</h3>
+      <select 
+        [(ngModel)]="selectedDepartment" 
+        (change)="onDepartmentChange()"
+        class="department-dropdown"
+      >
+        <option value="">Choose a department...</option>
+        <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Approval Steps Display -->
+  <div class="approval-display" *ngIf="selectedDepartment">
+    <div class="approval-card">
+      <div class="card-header">
+        <h2>{{ selectedDepartment }} Department Approval Workflow</h2>
+        <button class="btn btn-primary" (click)="showAddForm = true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Edit Workflow
+        </button>
+      </div>
+      
+      <div class="approval-steps" *ngIf="getSelectedWorkflow()">
+        <h3>Current Approval Steps:</h3>
+        <div class="steps-container">
+          <div class="step-item" *ngFor="let step of getApprovalSteps(getSelectedWorkflow()); let i = index">
+            <div class="step-number">{{ i + 1 }}</div>
+            <div class="step-content">
+              <div class="step-role">{{ step }}</div>
+              <div class="step-label">Approver</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-workflow" *ngIf="!getSelectedWorkflow()">
+        <div class="no-workflow-content">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3>No Workflow Configured</h3>
+          <p>This department doesn't have an approval workflow set up yet.</p>
+          <button class="btn btn-primary" (click)="showAddForm = true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Create Workflow
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Dialog -->
+  <div class="modal-overlay" *ngIf="showAddForm" (click)="resetForm()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ getFormTitle() }}</h3>
+        <button class="btn btn-icon" (click)="resetForm()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <form (ngSubmit)="editingWorkflow ? updateWorkflow() : addWorkflow()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="step1">Step 1 (Required)</label>
+            <select 
+              id="step1" 
+              [(ngModel)]="formData.step1" 
+              name="step1" 
+              required
+            >
+              <option value="">Select Approver</option>
+              <option *ngFor="let approver of availableApprovers" [value]="approver">{{ approver }}</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="step2">Step 2 (Optional)</label>
+            <select 
+              id="step2" 
+              [(ngModel)]="formData.step2" 
+              name="step2"
+            >
+              <option value="">Select Approver</option>
+              <option *ngFor="let approver of availableApprovers" [value]="approver">{{ approver }}</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="step3">Step 3 (Optional)</label>
+            <select 
+              id="step3" 
+              [(ngModel)]="formData.step3" 
+              name="step3"
+            >
+              <option value="">Select Approver</option>
+              <option *ngFor="let approver of availableApprovers" [value]="approver">{{ approver }}</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="formData.isActive" 
+                name="isActive"
+              >
+              <span class="checkmark"></span>
+              Active
+            </label>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="resetForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            {{ getSubmitButtonText() }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!selectedDepartment">
+    <div class="empty-content">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>Select a Department</h3>
+      <p>Choose a department from the dropdown above to view and manage its approval workflow.</p>
+    </div>
+  </div>
+</div>

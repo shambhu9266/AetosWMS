@@ -11,6 +11,7 @@ import com.example.backend.service.PdfService;
 import com.example.backend.repo.RequisitionRepository;
 import com.example.backend.repo.VendorPdfRepository;
 import com.example.backend.model.RequisitionStatus;
+import com.example.backend.model.UserRole;
 import com.example.backend.service.AuthService;
 
 import java.util.Map;
@@ -158,7 +159,11 @@ public class OptimizedController {
             Pageable pageable = paginationService.createPageable(page, size, "createdAt", "desc");
             Page<?> approvals;
             
-            if (authService.hasRole(currentUser, "IT_MANAGER")) {
+            if (currentUser.getRole() == UserRole.SUPERADMIN) {
+                // SUPERADMIN sees all pending approvals (both IT and Finance)
+                // For now, return IT approvals - the frontend will handle combining both
+                approvals = requisitionRepository.findByStatusOrderByCreatedAtDesc(RequisitionStatus.PENDING_IT_APPROVAL, pageable);
+            } else if (authService.hasRole(currentUser, "IT_MANAGER")) {
                 approvals = requisitionRepository.findByStatusOrderByCreatedAtDesc(RequisitionStatus.PENDING_IT_APPROVAL, pageable);
             } else if (authService.hasRole(currentUser, "FINANCE_MANAGER")) {
                 approvals = requisitionRepository.findByStatusOrderByCreatedAtDesc(RequisitionStatus.PENDING_FINANCE_APPROVAL, pageable);

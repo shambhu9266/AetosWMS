@@ -1,0 +1,256 @@
+<div class="vendor-management">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Vendor Management</h1>
+      <p>Manage approved vendors and suppliers for procurement</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" (click)="showAddForm = true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Add Vendor
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L13.09 8.26L19 7L14.74 12.26L21 13.09L15.74 18.26L17 24L12 19L7 24L8.26 18.26L3 13.09L9.26 12.26L5 7L10.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ vendors.length }}</div>
+        <div class="stat-label">Total Vendors</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getActiveVendors() }}</div>
+        <div class="stat-label">Active Vendors</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.049 2.927C11.349 2.006 12.651 2.006 12.951 2.927L14.07 6.04C14.206 6.428 14.574 6.7 14.99 6.7H18.31C19.28 6.7 19.68 7.99 18.9 8.64L16.33 10.91C16.01 11.19 15.88 11.64 16.02 12.03L17.04 15.13C17.34 16.05 16.25 16.81 15.45 16.26L12.66 14.29C12.3 14.03 11.7 14.03 11.34 14.29L8.55 16.26C7.75 16.81 6.66 16.05 6.96 15.13L7.98 12.03C8.12 11.64 7.99 11.19 7.67 10.91L5.1 8.64C4.32 7.99 4.72 6.7 5.69 6.7H9.01C9.43 6.7 9.8 6.43 9.93 6.04L11.049 2.927Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getAverageRating() }}</div>
+        <div class="stat-label">Avg Rating</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 7H17V17H7V7ZM7 3H17V5H7V3ZM7 19H17V21H7V19ZM3 7H5V17H3V7ZM3 3H5V5H3V3ZM3 19H5V21H3V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getVendorsByCategory() }}</div>
+        <div class="stat-label">Categories</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit Form -->
+  <div class="form-section" *ngIf="showAddForm">
+    <div class="form-card">
+      <div class="form-header">
+        <h3>{{ editingVendor ? 'Edit Vendor' : 'Add New Vendor' }}</h3>
+        <button class="btn btn-secondary" (click)="resetForm()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <form (ngSubmit)="editingVendor ? updateVendor() : addVendor()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="name">Vendor Name</label>
+            <input 
+              type="text" 
+              id="name" 
+              [(ngModel)]="formData.name" 
+              name="name" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="contactPerson">Contact Person</label>
+            <input 
+              type="text" 
+              id="contactPerson" 
+              [(ngModel)]="formData.contactPerson" 
+              name="contactPerson" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input 
+              type="email" 
+              id="email" 
+              [(ngModel)]="formData.email" 
+              name="email" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone</label>
+            <input 
+              type="tel" 
+              id="phone" 
+              [(ngModel)]="formData.phone" 
+              name="phone" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label for="category">Category</label>
+            <select 
+              id="category" 
+              [(ngModel)]="formData.category" 
+              name="category" 
+              required
+            >
+              <option value="">Select Category</option>
+              <option value="IT Equipment">IT Equipment</option>
+              <option value="Office Supplies">Office Supplies</option>
+              <option value="Furniture">Furniture</option>
+              <option value="Cleaning Services">Cleaning Services</option>
+              <option value="Security">Security</option>
+              <option value="Catering">Catering</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Maintenance">Maintenance</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Legal">Legal</option>
+              <option value="Accounting">Accounting</option>
+              <option value="Consulting">Consulting</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="rating">Rating</label>
+            <input 
+              type="number" 
+              id="rating" 
+              [(ngModel)]="formData.rating" 
+              name="rating" 
+              min="0" 
+              max="5" 
+              step="0.1"
+              required
+            >
+          </div>
+          <div class="form-group full-width">
+            <label for="address">Address</label>
+            <textarea 
+              id="address" 
+              [(ngModel)]="formData.address" 
+              name="address" 
+              rows="3"
+              required
+            ></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            {{ editingVendor ? 'Update Vendor' : 'Add Vendor' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Vendors Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3>Vendors</h3>
+      <div class="table-actions">
+        <input type="text" placeholder="Search vendors..." class="search-input">
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Vendor Name</th>
+            <th>Contact Person</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Category</th>
+            <th>Rating</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let vendor of vendors">
+            <td>
+              <div class="vendor-info">
+                <div class="vendor-name">{{ vendor.name }}</div>
+                <div class="vendor-address">{{ vendor.address }}</div>
+              </div>
+            </td>
+            <td>{{ vendor.contactPerson }}</td>
+            <td>
+              <a href="mailto:{{ vendor.email }}" class="email-link">{{ vendor.email }}</a>
+            </td>
+            <td>
+              <a href="tel:{{ vendor.phone }}" class="phone-link">{{ vendor.phone }}</a>
+            </td>
+            <td>
+              <span class="category-badge">{{ vendor.category }}</span>
+            </td>
+            <td>
+              <div class="rating-display">
+                <div class="stars">
+                  <span *ngFor="let star of [1,2,3,4,5]" class="star" [class.filled]="star <= vendor.rating">★</span>
+                </div>
+                <span class="rating-value">{{ vendor.rating }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="vendor.active" [class.inactive]="!vendor.active">
+                {{ vendor.active ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn btn-sm btn-primary" (click)="editVendor(vendor)" title="Edit">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="btn btn-sm btn-warning" (click)="toggleVendorStatus(vendor)" [title]="vendor.active ? 'Deactivate' : 'Activate'">
+                  <svg *ngIf="vendor.active" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <svg *ngIf="!vendor.active" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="deleteVendor(vendor)" title="Delete">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

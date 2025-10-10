@@ -20,7 +20,7 @@ RUN npm run build --prod
 FROM nginx:alpine
 
 # Copy built application from builder stage
-COPY --from=builder /app/dist/procure /usr/share/nginx/html
+COPY --from=builder /app/dist/frontend /usr/share/nginx/html
 
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf

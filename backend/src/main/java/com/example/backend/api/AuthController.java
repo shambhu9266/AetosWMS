@@ -45,12 +45,44 @@ public class AuthController {
                 )
             );
         }
-        return Map.of("success", false, "message", "Invalid session");
+        return Map.of("success", false, "message", "Invalid token");
     }
     
     @GetMapping("/check-permission")
     public Map<String, Object> checkPermission(@RequestParam String sessionId, @RequestParam String requiredRole) {
         boolean hasPermission = authService.hasPermission(sessionId, requiredRole);
         return Map.of("hasPermission", hasPermission);
+    }
+    
+    @PostMapping("/create-user")
+    public Map<String, Object> createUser(@RequestParam String sessionId,
+                                        @RequestParam String username,
+                                        @RequestParam String password,
+                                        @RequestParam String fullName,
+                                        @RequestParam String role,
+                                        @RequestParam String department) {
+        System.out.println("DEBUG: Create user request - username: " + username + ", role: " + role);
+        return authService.createUser(sessionId, username, password, fullName, role, department);
+    }
+    
+    @GetMapping("/users")
+    public Map<String, Object> getAllUsers(@RequestParam(value = "sessionId", required = false) String sessionId) {
+        System.out.println("DEBUG: Get all users request with sessionId: " + sessionId);
+        
+        // If no sessionId provided, return all users (for testing purposes)
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            System.out.println("DEBUG: No sessionId provided, returning all users");
+            return authService.getAllUsersWithoutAuth();
+        }
+        
+        return authService.getAllUsers(sessionId);
+    }
+    
+    @PostMapping("/update-user-status")
+    public Map<String, Object> updateUserStatus(@RequestParam String sessionId,
+                                                @RequestParam Long userId,
+                                                @RequestParam Boolean isActive) {
+        System.out.println("DEBUG: Update user status request - userId: " + userId + ", isActive: " + isActive);
+        return authService.updateUserStatus(sessionId, userId, isActive);
     }
 }

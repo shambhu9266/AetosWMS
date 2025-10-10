@@ -36,29 +36,56 @@ public class ProcureService {
         r.setQuantity(quantity);
         r.setPrice(price);
         r.setDepartment(department);
-        r.setStatus(RequisitionStatus.PENDING_IT_APPROVAL);
+        r.setStatus(RequisitionStatus.PENDING_DEPARTMENT_APPROVAL); // First step: Department Manager
         Requisition savedRequisition = requisitionRepository.save(r);
         
-        // Notify IT Manager about new PR
-        Notification itNotification = new Notification();
-        itNotification.setUserId("shambhu"); // IT Manager username
-        itNotification.setMessage("New PR #" + savedRequisition.getId() + " from " + createdBy + " (" + department + ") for " + quantity + " " + itemName + " (₹" + price + ") needs IT approval");
-        Notification savedNotification = notificationRepository.save(itNotification);
-        System.out.println("DEBUG: Created notification for IT Manager: " + savedNotification.getNotificationId());
+        // Notify Department Manager about new PR
+        String departmentManager = getDepartmentManager(department);
+        
+        // Check if notification already exists for this requisition to prevent duplicates
+        String expectedMessageStart = "New PR #" + savedRequisition.getId() + " from " + createdBy;
+        boolean notificationExists = notificationRepository.findAll().stream()
+            .anyMatch(n -> n.getUserId().equals(departmentManager) && 
+                          n.getMessage().startsWith(expectedMessageStart));
+        
+        if (notificationExists) {
+            System.out.println("DEBUG: Notification already exists for PR #" + savedRequisition.getId() + ", skipping duplicate creation");
+        } else {
+            Notification deptNotification = new Notification();
+            deptNotification.setUserId(departmentManager);
+            deptNotification.setMessage("New PR #" + savedRequisition.getId() + " from " + createdBy + " (" + department + ") for " + quantity + " " + itemName + " (₹" + price + ") needs Department approval");
+            Notification savedNotification = notificationRepository.save(deptNotification);
+            System.out.println("DEBUG: Created notification for Department Manager: " + savedNotification.getNotificationId());
+        }
         
         return savedRequisition;
+    }
+    
+    private String getDepartmentManager(String department) {
+        // Map departments to their managers
+        switch (department.toLowerCase()) {
+            case "sales":
+                return "salesmanager";
+            case "it":
+                return "itmanager";
+            default:
+                return "salesmanager"; // Default fallback
+        }
     }
 
     @Transactional
     public Requisition createRequisitionWithItems(String createdBy, String department, List<CreateRequisitionRequest.RequisitionItemDto> itemDtos) {
+        System.out.println("DEBUG: createRequisitionWithItems called - createdBy: " + createdBy + ", department: " + department + ", items: " + itemDtos.size());
+        
         // Create the main requisition
         Requisition requisition = new Requisition();
         requisition.setCreatedBy(createdBy);
         requisition.setDepartment(department);
-        requisition.setStatus(RequisitionStatus.PENDING_IT_APPROVAL);
+        requisition.setStatus(RequisitionStatus.PENDING_DEPARTMENT_APPROVAL); // First step: Department Manager
         
         // Save the requisition first to get the ID
         Requisition savedRequisition = requisitionRepository.save(requisition);
+        System.out.println("DEBUG: Saved requisition with ID: " + savedRequisition.getId());
         
         // Add items to the requisition
         for (CreateRequisitionRequest.RequisitionItemDto itemDto : itemDtos) {
@@ -71,24 +98,38 @@ public class ProcureService {
         
         // Save the requisition with items
         savedRequisition = requisitionRepository.save(savedRequisition);
+        System.out.println("DEBUG: Saved requisition with items, final ID: " + savedRequisition.getId());
         
-        // Create notification for IT Manager
-        Notification itNotification = new Notification();
-        itNotification.setUserId("shambhu"); // IT Manager username
+        // Create notification for Department Manager (first step in approval process)
+        String departmentManager = getDepartmentManager(department);
+        System.out.println("DEBUG: Department manager for " + department + " is: " + departmentManager);
         
-        // Build notification message with items summary
-        StringBuilder message = new StringBuilder("New PR #" + savedRequisition.getId() + " from " + createdBy + " (" + department + ") with " + itemDtos.size() + " items needs IT approval:\n");
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (CreateRequisitionRequest.RequisitionItemDto itemDto : itemDtos) {
-            BigDecimal lineTotal = itemDto.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
-            totalAmount = totalAmount.add(lineTotal);
-            message.append("- ").append(itemDto.getQuantity()).append("x ").append(itemDto.getItemName()).append(" @ ₹").append(itemDto.getPrice()).append(" = ₹").append(lineTotal).append("\n");
+        // Check if notification already exists for this requisition to prevent duplicates
+        String expectedMessageStart = "New PR #" + savedRequisition.getId() + " from " + createdBy;
+        boolean notificationExists = notificationRepository.findAll().stream()
+            .anyMatch(n -> n.getUserId().equals(departmentManager) && 
+                          n.getMessage().startsWith(expectedMessageStart));
+        
+        if (notificationExists) {
+            System.out.println("DEBUG: Notification already exists for PR #" + savedRequisition.getId() + ", skipping duplicate creation");
+        } else {
+            Notification deptNotification = new Notification();
+            deptNotification.setUserId(departmentManager);
+            
+            // Build notification message with items summary
+            StringBuilder message = new StringBuilder("New PR #" + savedRequisition.getId() + " from " + createdBy + " (" + department + ") with " + itemDtos.size() + " items needs Department approval:\n");
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            for (CreateRequisitionRequest.RequisitionItemDto itemDto : itemDtos) {
+                BigDecimal lineTotal = itemDto.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity()));
+                totalAmount = totalAmount.add(lineTotal);
+                message.append("- ").append(itemDto.getQuantity()).append("x ").append(itemDto.getItemName()).append(" @ ₹").append(itemDto.getPrice()).append(" = ₹").append(lineTotal).append("\n");
+            }
+            message.append("Total Amount: ₹").append(totalAmount);
+            
+            deptNotification.setMessage(message.toString());
+            Notification savedNotification = notificationRepository.save(deptNotification);
+            System.out.println("DEBUG: Created SINGLE notification for Department Manager: " + savedNotification.getNotificationId() + " for user: " + departmentManager);
         }
-        message.append("Total Amount: ₹").append(totalAmount);
-        
-        itNotification.setMessage(message.toString());
-        Notification savedNotification = notificationRepository.save(itNotification);
-        System.out.println("DEBUG: Created notification for IT Manager: " + savedNotification.getNotificationId());
         
         return savedRequisition;
     }
@@ -139,6 +180,60 @@ public class ProcureService {
         System.out.println("DEBUG: Created notification for IT Manager about update: " + savedNotification.getNotificationId());
         
         return updatedRequisition;
+    }
+
+    @Transactional
+    public Requisition departmentDecision(Long requisitionId, String departmentManager, String decision, String comments) {
+        Requisition r = requisitionRepository.findById(requisitionId).orElseThrow();
+        Approval a = new Approval();
+        a.setRequisitionId(requisitionId);
+        a.setApproverRole("DEPARTMENT");
+        a.setDecision(decision);
+        a.setComments(comments);
+        approvalRepository.save(a);
+
+        if ("APPROVE".equalsIgnoreCase(decision)) {
+            r.setStatus(RequisitionStatus.PENDING_IT_APPROVAL);
+            
+            // Create description for notifications
+            String itemDescription;
+            if (r.getItems() != null && !r.getItems().isEmpty()) {
+                itemDescription = r.getItems().size() + " items (" + r.getItemNames() + ")";
+            } else {
+                itemDescription = r.getQuantity() + " " + r.getItemName();
+            }
+            
+            // Notify IT Manager about Department approval
+            Notification itNotification = new Notification();
+            itNotification.setUserId("shambhu"); // IT Manager username
+            itNotification.setMessage("PR #" + requisitionId + " from " + r.getCreatedBy() + " (" + r.getDepartment() + ") for " + itemDescription + " has been approved by Department and needs IT approval");
+            notificationRepository.save(itNotification);
+            
+            // Notify requester about Department approval
+            Notification requesterNotification = new Notification();
+            requesterNotification.setUserId(r.getCreatedBy());
+            requesterNotification.setMessage("Your PR #" + requisitionId + " for " + itemDescription + " has been approved by Department and sent to IT");
+            notificationRepository.save(requesterNotification);
+            
+        } else if ("REJECT".equalsIgnoreCase(decision)) {
+            r.setStatus(RequisitionStatus.REJECTED);
+            
+            // Create description for rejection notification
+            String rejectionDescription;
+            if (r.getItems() != null && !r.getItems().isEmpty()) {
+                rejectionDescription = r.getItems().size() + " items (" + r.getItemNames() + ")";
+            } else {
+                rejectionDescription = r.getQuantity() + " " + r.getItemName();
+            }
+            
+            // Notify requester about rejection
+            Notification rejectionNotification = new Notification();
+            rejectionNotification.setUserId(r.getCreatedBy());
+            rejectionNotification.setMessage("Your PR #" + requisitionId + " for " + rejectionDescription + " has been rejected by Department Manager");
+            notificationRepository.save(rejectionNotification);
+        }
+
+        return requisitionRepository.save(r);
     }
 
     @Transactional

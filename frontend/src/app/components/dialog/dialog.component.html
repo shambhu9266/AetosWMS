@@ -1,0 +1,49 @@
+<div 
+  *ngIf="showDialog" 
+  class="dialog-overlay"
+  (click)="onBackdropClick($event)"
+>
+  <div class="dialog-container">
+    <div class="dialog-header">
+      <div class="dialog-icon" [class]="'icon-' + dialog?.type">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path [attr.d]="getIconPath()" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 class="dialog-title">{{ dialog?.title }}</h3>
+    </div>
+    
+    <div class="dialog-body">
+      <p class="dialog-message">{{ dialog?.message }}</p>
+      
+      <div *ngIf="dialog?.type === 'prompt'" class="dialog-input">
+        <label class="input-label">{{ dialog?.inputLabel }}</label>
+        <input 
+          type="text" 
+          class="input-field"
+          [(ngModel)]="inputValue"
+          [placeholder]="dialog?.inputPlaceholder || ''"
+          #inputRef
+          (keyup.enter)="onConfirm()"
+        >
+      </div>
+    </div>
+    
+    <div class="dialog-footer">
+      <button 
+        *ngIf="dialog?.showCancel" 
+        class="btn btn-secondary"
+        (click)="onCancel()"
+      >
+        {{ dialog?.cancelText || 'Cancel' }}
+      </button>
+      <button 
+        class="btn btn-primary"
+        [class]="'btn-' + dialog?.type"
+        (click)="onConfirm()"
+      >
+        {{ dialog?.confirmText || 'OK' }}
+      </button>
+    </div>
+  </div>
+</div>

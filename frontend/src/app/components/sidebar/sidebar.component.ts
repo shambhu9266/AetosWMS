@@ -50,6 +50,12 @@ export class SidebarComponent implements OnInit {
       icon: 'M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01',
       label: 'Purchase Orders',
       description: 'Create and manage POs'
+    },
+    {
+      path: '/master',
+      icon: 'M10.325 4.317C10.751 4.105 11.245 4 11.75 4H12.25C12.755 4 13.249 4.105 13.675 4.317L15.5 5.25C15.5 5.25 16.5 5.75 16.5 6.75V7.25C16.5 8.25 15.5 8.75 15.5 8.75L13.675 9.683C13.249 9.895 12.755 10 12.25 10H11.75C11.245 10 10.751 9.895 10.325 9.683L8.5 8.75C8.5 8.75 7.5 8.25 7.5 7.25V6.75C7.5 5.75 8.5 5.25 8.5 5.25L10.325 4.317ZM12 13.5C12.8284 13.5 13.5 12.8284 13.5 12C13.5 11.1716 12.8284 10.5 12 10.5C11.1716 10.5 10.5 11.1716 10.5 12C10.5 12.8284 11.1716 13.5 12 13.5Z',
+      label: 'Master',
+      description: 'Master data management'
     }
   ];
 
@@ -127,6 +133,18 @@ export class SidebarComponent implements OnInit {
         // Only FINANCE_MANAGER role can access Purchase Orders
         const canAccess = currentUser?.role === 'FINANCE_MANAGER';
         console.log('DEBUG: Purchase Orders access check:', canAccess, 'User role:', currentUser?.role);
+        return canAccess;
+      }
+      if (item.path === '/user-management') {
+        // Only SUPERADMIN role can access User Management
+        const canAccess = currentUser?.role === 'SUPERADMIN';
+        console.log('DEBUG: User Management access check:', canAccess, 'User role:', currentUser?.role);
+        return canAccess;
+      }
+      if (item.path === '/master') {
+        // Only SUPERADMIN role can access Master
+        const canAccess = currentUser?.role === 'SUPERADMIN';
+        console.log('DEBUG: Master access check:', canAccess, 'User role:', currentUser?.role);
         return canAccess;
       }
       return true; // Show all other menu items

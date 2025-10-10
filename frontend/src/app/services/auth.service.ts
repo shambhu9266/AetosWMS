@@ -13,7 +13,7 @@ export interface User {
 
 export interface LoginResponse {
   success: boolean;
-  sessionId?: string;
+  token?: string;
   user?: User;
   message?: string;
 }
@@ -24,18 +24,18 @@ export interface LoginResponse {
 export class AuthService {
   private baseUrl = 'http://localhost:8080/api/auth';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
-  private sessionIdSubject = new BehaviorSubject<string | null>(null);
+  private tokenSubject = new BehaviorSubject<string | null>(null);
 
   public currentUser$ = this.currentUserSubject.asObservable();
-  public sessionId$ = this.sessionIdSubject.asObservable();
+  public token$ = this.tokenSubject.asObservable();
 
   constructor(private http: HttpClient) {
     // Check if user is already logged in (from localStorage)
-    const savedSessionId = localStorage.getItem('sessionId');
+    const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('currentUser');
     
-    if (savedSessionId && savedUser) {
-      this.sessionIdSubject.next(savedSessionId);
+    if (savedToken && savedUser) {
+      this.tokenSubject.next(savedToken);
       this.currentUserSubject.next(JSON.parse(savedUser));
     }
   }
@@ -51,14 +51,14 @@ export class AuthService {
       .pipe(
         tap(response => {
           console.log('DEBUG: Login response:', response);
-          if (response.success && response.sessionId && response.user) {
-            this.sessionIdSubject.next(response.sessionId);
+          if (response.success && response.token && response.user) {
+            this.tokenSubject.next(response.token);
             this.currentUserSubject.next(response.user);
             
             // Save to localStorage
-            localStorage.setItem('sessionId', response.sessionId);
+            localStorage.setItem('token', response.token);
             localStorage.setItem('currentUser', JSON.stringify(response.user));
-            console.log('DEBUG: Session saved:', response.sessionId);
+            console.log('DEBUG: Token saved:', response.token);
           } else {
             console.log('DEBUG: Login failed:', response.message);
           }
@@ -67,13 +67,13 @@ export class AuthService {
   }
 
   logout(): Observable<any> {
-    const sessionId = this.sessionIdSubject.value;
+    const token = this.tokenSubject.value;
     
-    // Always clear the session first
+    // Always clear the token first
     this.clearSession();
     
-    if (sessionId) {
-      const params = new HttpParams().set('sessionId', sessionId);
+    if (token) {
+      const params = new HttpParams().set('token', token);
       return this.http.post(`${this.baseUrl}/logout`, null, { params })
         .pipe(
           tap(() => {
@@ -81,7 +81,7 @@ export class AuthService {
           }),
           catchError((error) => {
             console.error('Logout error:', error);
-            // Even if backend logout fails, we've already cleared the session
+            // Even if backend logout fails, we've already cleared the token
             return of({ success: true });
           })
         );
@@ -96,10 +96,10 @@ export class AuthService {
     return this.currentUserSubject.value;
   }
 
-  getSessionId(): string | null {
-    const sessionId = this.sessionIdSubject.value;
-    console.log('DEBUG: getSessionId called, returning:', sessionId);
-    return sessionId;
+  getToken(): string | null {
+    const token = this.tokenSubject.value;
+    console.log('DEBUG: getToken called, returning:', token);
+    return token;
   }
 
   isLoggedIn(): boolean {
@@ -119,11 +119,19 @@ export class AuthService {
   }
 
   canAccessITApprovals(): boolean {
-    return this.hasRole('IT_MANAGER') || this.hasRole('SUPERADMIN');
+    const result = this.hasRole('IT_MANAGER') || this.hasRole('SUPERADMIN');
+    console.log('DEBUG canAccessITApprovals: hasRole(IT_MANAGER):', this.hasRole('IT_MANAGER'));
+    console.log('DEBUG canAccessITApprovals: hasRole(SUPERADMIN):', this.hasRole('SUPERADMIN'));
+    console.log('DEBUG canAccessITApprovals: result:', result);
+    return result;
   }
 
   canAccessFinanceApprovals(): boolean {
     return this.hasRole('FINANCE_MANAGER') || this.hasRole('SUPERADMIN');
+  }
+
+  isDepartmentManager(): boolean {
+    return this.hasRole('DEPARTMENT_MANAGER') || this.hasRole('SUPERADMIN');
   }
 
   canAccessBudget(): boolean {
@@ -144,6 +152,7 @@ export class AuthService {
     return user?.role === 'EMPLOYEE';
   }
 
+
   canCreateRequisitions(): boolean {
     // All logged-in users can create requisitions
     return this.isLoggedIn();
@@ -151,8 +160,8 @@ export class AuthService {
 
   clearSession(): void {
     this.currentUserSubject.next(null);
-    this.sessionIdSubject.next(null);
-    localStorage.removeItem('sessionId');
+    this.tokenSubject.next(null);
+    localStorage.removeItem('token');
     localStorage.removeItem('currentUser');
   }
 }

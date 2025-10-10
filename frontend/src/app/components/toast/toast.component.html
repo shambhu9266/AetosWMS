@@ -1,0 +1,31 @@
+<div class="toast-container">
+  <div 
+    *ngFor="let toast of toasts" 
+    [class]="getToastClass(toast.type)"
+    [attr.data-position]="toast.position || 'top-right'"
+    class="toast-item"
+  >
+    <div class="toast-content">
+      <div class="toast-icon">
+        {{ getToastIcon(toast.type) }}
+      </div>
+      <div class="toast-body">
+        <div class="toast-title" *ngIf="toast.title">{{ toast.title }}</div>
+        <div class="toast-message">{{ toast.message }}</div>
+      </div>
+      <button 
+        *ngIf="toast.showCloseButton !== false" 
+        class="toast-close" 
+        (click)="removeToast(toast.id)"
+        aria-label="Close notification"
+      >
+        ×
+      </button>
+    </div>
+    <div 
+      *ngIf="toast.showProgress && toast.duration" 
+      class="toast-progress"
+      [style.animation-duration]="toast.duration + 'ms'"
+    ></div>
+  </div>
+</div>

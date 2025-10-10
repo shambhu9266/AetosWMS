@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Requisition, RequisitionItem } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-approvals',
@@ -12,27 +13,40 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./approvals.component.css']
 })
 export class ApprovalsComponent implements OnInit {
-  constructor(private apiService: ApiService, private authService: AuthService) {}
+  constructor(
+    private apiService: ApiService, 
+    public authService: AuthService,
+    private alertService: AlertService
+  ) {}
 
-  protected readonly activeTab = signal<string>('it');
+  protected readonly activeTab = signal<string>('department');
+  protected readonly departmentPendings = signal<Requisition[]>([]);
   protected readonly itPendings = signal<Requisition[]>([]);
   protected readonly finPendings = signal<Requisition[]>([]);
   
 
   ngOnInit() {
+    console.log('DEBUG ApprovalsComponent: Initializing approvals component');
+    console.log('DEBUG ApprovalsComponent: Current user:', this.authService.getCurrentUser());
+    console.log('DEBUG ApprovalsComponent: canAccessITApprovals():', this.canAccessITApprovals());
+    console.log('DEBUG ApprovalsComponent: canAccessFinanceApprovals():', this.canAccessFinanceApprovals());
+    console.log('DEBUG ApprovalsComponent: isDepartmentManager():', this.isDepartmentManager());
+    
     this.initializeActiveTab();
     this.loadApprovals();
   }
 
   private initializeActiveTab() {
     // Set default tab based on user role
-    if (this.authService.canAccessITApprovals() && !this.authService.canAccessFinanceApprovals()) {
+    if (this.authService.isDepartmentManager() && !this.authService.canAccessITApprovals() && !this.authService.canAccessFinanceApprovals()) {
+      this.activeTab.set('department');
+    } else if (this.authService.canAccessITApprovals() && !this.authService.canAccessFinanceApprovals()) {
       this.activeTab.set('it');
     } else if (this.authService.canAccessFinanceApprovals() && !this.authService.canAccessITApprovals()) {
       this.activeTab.set('finance');
     } else {
-      // SUPERADMIN or users with both permissions - default to IT
-      this.activeTab.set('it');
+      // SUPERADMIN or users with multiple permissions - default to department
+      this.activeTab.set('department');
     }
   }
 
@@ -44,7 +58,29 @@ export class ApprovalsComponent implements OnInit {
     return this.authService.canAccessFinanceApprovals();
   }
 
+  isDepartmentManager(): boolean {
+    return this.authService.isDepartmentManager();
+  }
+
   private loadApprovals() {
+    // Load Department pending approvals if user is a Department Manager
+    if (this.authService.isDepartmentManager()) {
+      const sessionId = this.authService.getToken();
+      if (sessionId) {
+        this.apiService.getPendingDepartmentApprovals().subscribe({
+          next: (response) => {
+            console.log('DEBUG: Department approvals response:', response);
+            if (response.success) {
+              this.departmentPendings.set(response.requisitions || []);
+            }
+          },
+          error: (error) => {
+            console.error('Error loading Department approvals:', error);
+          }
+        });
+      }
+    }
+
     // Load IT pending approvals only if user has IT approval access
     if (this.authService.canAccessITApprovals()) {
       this.apiService.getPendingItApprovals().subscribe({
@@ -93,12 +129,12 @@ export class ApprovalsComponent implements OnInit {
           console.log('IT Decision successful:', response);
           this.loadApprovals(); // Reload data
         } else {
-          alert(response.message || 'Failed to process IT decision');
+          this.alertService.showError(response.message || 'Failed to process IT decision');
         }
       },
       error: (error) => {
         console.error('Error making IT decision:', error);
-        alert('Failed to process IT decision. Please try again.');
+        this.alertService.showError('Failed to process IT decision. Please try again.');
       }
     });
   }
@@ -110,12 +146,35 @@ export class ApprovalsComponent implements OnInit {
           console.log('Finance Decision successful:', response);
           this.loadApprovals(); // Reload data
         } else {
-          alert(response.message || 'Failed to process Finance decision');
+          this.alertService.showError(response.message || 'Failed to process Finance decision');
         }
       },
       error: (error) => {
         console.error('Error making Finance decision:', error);
-        alert('Failed to process Finance decision. Please try again.');
+        this.alertService.showError('Failed to process Finance decision. Please try again.');
+      }
+    });
+  }
+
+  departmentDecision(id: number, decision: string) {
+    const sessionId = this.authService.getToken();
+    if (!sessionId) {
+      this.alertService.showError('No active session');
+      return;
+    }
+
+    this.apiService.departmentDecision(id, sessionId, decision).subscribe({
+      next: (response) => {
+        if (response.success) {
+          console.log('Department Decision successful:', response);
+          this.loadApprovals(); // Reload data
+        } else {
+          this.alertService.showError(response.message || 'Failed to process Department decision');
+        }
+      },
+      error: (error) => {
+        console.error('Error making Department decision:', error);
+        this.alertService.showError('Failed to process Department decision. Please try again.');
       }
     });
   }

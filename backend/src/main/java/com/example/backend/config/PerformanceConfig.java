@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.core.task.AsyncTaskExecutor;
 
 import java.util.concurrent.Executor;
 
@@ -16,16 +17,16 @@ public class PerformanceConfig implements WebMvcConfigurer {
     @Override
     public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         configurer.setDefaultTimeout(30000); // 30 seconds timeout
-        configurer.setTaskExecutor(taskExecutor());
+        configurer.setTaskExecutor((AsyncTaskExecutor) performanceTaskExecutor());
     }
 
-    @Bean(name = "taskExecutor")
-    public Executor taskExecutor() {
+    @Bean(name = "performanceTaskExecutor")
+    public Executor performanceTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(50);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("Async-");
+        executor.setThreadNamePrefix("Performance-");
         executor.initialize();
         return executor;
     }

@@ -27,6 +27,7 @@ public interface RequisitionRepository extends JpaRepository<Requisition, Long> 
     
     // Department queries
     Page<Requisition> findByDepartmentOrderByCreatedAtDesc(String department, Pageable pageable);
+    List<Requisition> findByStatusAndDepartment(RequisitionStatus status, String department);
     
     // Date range queries for reporting
     @Query("SELECT r FROM Requisition r WHERE r.status = 'APPROVED' AND r.createdAt >= :startDate AND r.createdAt <= :endDate")
@@ -40,4 +41,7 @@ public interface RequisitionRepository extends JpaRepository<Requisition, Long> 
     // Recent requisitions for dashboard
     @Query("SELECT r FROM Requisition r ORDER BY r.createdAt DESC")
     Page<Requisition> findRecentRequisitions(Pageable pageable);
+    
+    // Get top 10 recent requisitions
+    List<Requisition> findTop10ByOrderByCreatedAtDesc();
 }

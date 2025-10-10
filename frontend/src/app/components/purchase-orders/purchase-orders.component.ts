@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, PurchaseOrder } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-purchase-orders',
@@ -12,7 +13,11 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./purchase-orders.component.css']
 })
 export class PurchaseOrdersComponent implements OnInit {
-  constructor(private apiService: ApiService, private authService: AuthService) {}
+  constructor(
+    private apiService: ApiService, 
+    private authService: AuthService,
+    private alertService: AlertService
+  ) {}
 
   protected readonly purchaseOrders = signal<PurchaseOrder[]>([]);
   protected readonly activeTab = signal<string>('create');
@@ -386,22 +391,22 @@ export class PurchaseOrdersComponent implements OnInit {
     this.apiService.updatePOStatus(po.id, status).subscribe({
       next: (response) => {
         if (response.success) {
-          alert('PO status updated successfully!');
+          this.alertService.showError('PO status updated successfully!');
           this.loadPurchaseOrders(); // Reload PO list
         } else {
-          alert('Failed to update PO status: ' + response.message);
+          this.alertService.showError('Failed to update PO status: ' + response.message);
         }
       },
       error: (error) => {
         console.error('Error updating PO status:', error);
-        alert('Failed to update PO status. Please try again.');
+        this.alertService.showError('Failed to update PO status. Please try again.');
       }
     });
   }
 
   downloadPDF(po: PurchaseOrder) {
     if (!po.id) {
-      alert('PO ID not found');
+      this.alertService.showError('PO ID not found');
       return;
     }
 
@@ -416,11 +421,11 @@ export class PurchaseOrdersComponent implements OnInit {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
-        alert('PDF downloaded successfully!');
+        this.alertService.showError('PDF downloaded successfully!');
       },
       error: (error) => {
         console.error('Error downloading PDF:', error);
-        alert('Error downloading PDF. Please try again.');
+        this.alertService.showError('Error downloading PDF. Please try again.');
       }
     });
   }
@@ -430,15 +435,15 @@ export class PurchaseOrdersComponent implements OnInit {
       this.apiService.deletePurchaseOrder(po.id).subscribe({
         next: (response) => {
           if (response.success) {
-            alert('Purchase Order deleted successfully!');
+            this.alertService.showError('Purchase Order deleted successfully!');
             this.loadPurchaseOrders(); // Reload PO list
           } else {
-            alert('Failed to delete Purchase Order: ' + response.message);
+            this.alertService.showError('Failed to delete Purchase Order: ' + response.message);
           }
         },
         error: (error) => {
           console.error('Error deleting purchase order:', error);
-          alert('Failed to delete Purchase Order. Please try again.');
+          this.alertService.showError('Failed to delete Purchase Order. Please try again.');
         }
       });
     }

@@ -44,4 +44,11 @@ public interface VendorPdfRepository extends JpaRepository<VendorPdf, Long> {
     // Recent PDFs for dashboard (limited)
     @Query("SELECT v FROM VendorPdf v ORDER BY v.uploadedAt DESC")
     Page<VendorPdf> findRecentPdfs(Pageable pageable);
+    
+    // Approval stage queries
+    List<VendorPdf> findByApprovalStageOrderByUploadedAtDesc(String approvalStage);
+    Page<VendorPdf> findByApprovalStageOrderByUploadedAtDesc(String approvalStage, Pageable pageable);
+    
+    // Count by approval stage
+    long countByApprovalStage(String approvalStage);
 }

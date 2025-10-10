@@ -74,6 +74,23 @@ export class RequisitionsComponent implements OnInit {
             allRequisitions = allRequisitions.filter((req: Requisition) => 
               req.createdBy === currentUser?.username
             );
+          } else if (this.authService.hasRole('SUPERADMIN')) {
+            // For SUPERADMIN, show all requisitions (no filtering)
+            console.log('DEBUG: SUPERADMIN - showing all requisitions:', allRequisitions.length);
+          } else if (this.authService.isDepartmentManager()) {
+            // For department managers, only show requisitions from their department that are pending department approval
+            const currentUser = this.authService.getCurrentUser();
+            allRequisitions = allRequisitions.filter((req: Requisition) => 
+              req.department === currentUser?.department && 
+              req.status === 'PENDING_DEPARTMENT_APPROVAL'
+            );
+          } else if (this.authService.canAccessITApprovals()) {
+            // For IT managers, show requisitions that are pending IT approval (after department approval)
+            console.log('DEBUG: IT manager - all requisitions before filtering:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
+            allRequisitions = allRequisitions.filter((req: Requisition) => 
+              req.status === 'PENDING_IT_APPROVAL'
+            );
+            console.log('DEBUG: IT manager - filtered requisitions:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
           } else if (this.authService.canAccessFinanceApprovals()) {
             // For finance managers, show requisitions that are pending finance approval or have been approved by finance
             console.log('DEBUG: Finance manager - all requisitions before filtering:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
@@ -106,9 +123,12 @@ export class RequisitionsComponent implements OnInit {
   }
 
   createPR() {
+    console.log('DEBUG: ===== FRONTEND: createPR method called =====');
     const items = this.lineItems;
     const createdBy = this.createdBy();
     const department = this.department();
+    
+    console.log('DEBUG: Frontend - createdBy:', createdBy, 'department:', department, 'items count:', items.length);
     
     // Validate that all items have required fields
     const invalidItems = items.filter(item => !item.itemName.trim() || item.quantity <= 0 || item.price < 0);
@@ -132,6 +152,7 @@ export class RequisitionsComponent implements OnInit {
       items: apiItems
     };
 
+    console.log('DEBUG: Frontend - Making API call with request:', request);
     this.apiService.createRequisitionWithItems(request).subscribe({
       next: (response) => {
         if (response.success) {

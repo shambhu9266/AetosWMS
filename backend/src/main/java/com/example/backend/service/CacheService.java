@@ -50,31 +50,35 @@ public class CacheService {
 
     // Cache user-specific requisitions
     @Cacheable(value = "userRequisitions", key = "#userId")
-    public List<Object> getUserRequisitions(String userId) {
+    public List<Map<String, Object>> getUserRequisitions(String userId) {
         return requisitionRepository.findByCreatedByOrderByCreatedAtDesc(userId)
                 .stream()
                 .limit(10) // Limit to recent 10 for performance
-                .map(req -> Map.of(
-                    "id", req.getId(),
-                    "itemName", req.getItemName(),
-                    "status", req.getStatus(),
-                    "createdAt", req.getCreatedAt()
-                ))
+                .map(req -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", req.getId());
+                    map.put("itemName", req.getItemName());
+                    map.put("status", req.getStatus());
+                    map.put("createdAt", req.getCreatedAt());
+                    return map;
+                })
                 .toList();
     }
 
     // Cache user-specific PDFs
     @Cacheable(value = "userPdfs", key = "#userId")
-    public List<Object> getUserPdfs(String userId) {
+    public List<Map<String, Object>> getUserPdfs(String userId) {
         return vendorPdfRepository.findByUploadedByOrderByUploadedAtDesc(userId)
                 .stream()
                 .limit(10) // Limit to recent 10 for performance
-                .map(pdf -> Map.of(
-                    "id", pdf.getId(),
-                    "originalFileName", pdf.getOriginalFileName(),
-                    "processed", pdf.isProcessed(),
-                    "uploadedAt", pdf.getUploadedAt()
-                ))
+                .map(pdf -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", pdf.getId());
+                    map.put("originalFileName", pdf.getOriginalFileName());
+                    map.put("processed", pdf.isProcessed());
+                    map.put("uploadedAt", pdf.getUploadedAt());
+                    return map;
+                })
                 .toList();
     }
 

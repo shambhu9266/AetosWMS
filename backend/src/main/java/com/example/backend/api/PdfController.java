@@ -95,6 +95,7 @@ public class PdfController {
             if (currentUser == null || 
                 (!"IT_MANAGER".equals(currentUser.getRole().name()) && 
                  !"FINANCE_MANAGER".equals(currentUser.getRole().name()) &&
+                 !"DEPARTMENT_MANAGER".equals(currentUser.getRole().name()) &&
                  !"SUPERADMIN".equals(currentUser.getRole().name()))) {
                 return ResponseEntity.status(403).build();
             }
@@ -142,16 +143,86 @@ public class PdfController {
                                         @RequestParam String sessionId,
                                         @RequestParam String rejectionReason) {
         try {
-            // Finance Managers and IT Managers can reject PDFs
+            // Finance Managers, IT Managers, and Department Managers can reject PDFs
             User currentUser = authService.getCurrentUser(sessionId);
             if (currentUser == null || 
                 (!"FINANCE_MANAGER".equals(currentUser.getRole().name()) && 
-                 !"IT_MANAGER".equals(currentUser.getRole().name()))) {
-                return Map.of("success", false, "message", "Access denied. Only Finance Managers and IT Managers can reject PDFs.");
+                 !"IT_MANAGER".equals(currentUser.getRole().name()) &&
+                 !"DEPARTMENT_MANAGER".equals(currentUser.getRole().name()))) {
+                return Map.of("success", false, "message", "Access denied. Only Finance Managers, IT Managers, and Department Managers can reject PDFs.");
             }
             
             VendorPdf rejectedPdf = pdfService.rejectPdf(pdfId, rejectionReason);
             return Map.of("success", true, "message", "PDF rejected", "pdf", rejectedPdf);
+            
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/department-approve/{pdfId}")
+    public Map<String, Object> departmentApprovePdf(@PathVariable Long pdfId, 
+                                                   @RequestParam String sessionId) {
+        try {
+            System.out.println("DEBUG: Department approve PDF called with pdfId: " + pdfId + ", sessionId: " + sessionId);
+            
+            // Only Department Managers can approve PDFs at department level
+            User currentUser = authService.getCurrentUser(sessionId);
+            System.out.println("DEBUG: Current user: " + (currentUser != null ? currentUser.getUsername() : "null"));
+            System.out.println("DEBUG: User role: " + (currentUser != null ? currentUser.getRole().name() : "null"));
+            
+            if (currentUser == null) {
+                System.out.println("DEBUG: User is null");
+                return Map.of("success", false, "message", "Invalid session");
+            }
+            
+            if (!"DEPARTMENT_MANAGER".equals(currentUser.getRole().name())) {
+                System.out.println("DEBUG: User is not DEPARTMENT_MANAGER, role is: " + currentUser.getRole().name());
+                return Map.of("success", false, "message", "Access denied. Only Department Managers can approve PDFs at department level.");
+            }
+            
+            System.out.println("DEBUG: User is DEPARTMENT_MANAGER, proceeding with approval");
+            VendorPdf approvedPdf = pdfService.departmentApprovePdf(pdfId);
+            System.out.println("DEBUG: PDF approved successfully, new approval stage: " + approvedPdf.getApprovalStage());
+            return Map.of("success", true, "message", "PDF approved by Department Manager", "pdf", approvedPdf);
+            
+        } catch (Exception e) {
+            System.out.println("DEBUG: Exception in department approve: " + e.getMessage());
+            e.printStackTrace();
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/it-approve/{pdfId}")
+    public Map<String, Object> itApprovePdf(@PathVariable Long pdfId, 
+                                           @RequestParam String sessionId) {
+        try {
+            // Only IT Managers can approve PDFs at IT level
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"IT_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only IT Managers can approve PDFs at IT level.");
+            }
+            
+            VendorPdf approvedPdf = pdfService.itApprovePdf(pdfId);
+            return Map.of("success", true, "message", "PDF approved by IT Manager", "pdf", approvedPdf);
+            
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/finance-approve/{pdfId}")
+    public Map<String, Object> financeApprovePdf(@PathVariable Long pdfId, 
+                                                @RequestParam String sessionId) {
+        try {
+            // Only Finance Managers can approve PDFs at finance level
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"FINANCE_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only Finance Managers can approve PDFs at finance level.");
+            }
+            
+            VendorPdf approvedPdf = pdfService.financeApprovePdf(pdfId);
+            return Map.of("success", true, "message", "PDF approved by Finance Manager", "pdf", approvedPdf);
             
         } catch (Exception e) {
             return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
@@ -173,10 +244,11 @@ public class PdfController {
                 return Map.of("success", false, "message", "PDF not found");
             }
             
-            // Allow deletion if user is the uploader or is a Finance Manager, IT Manager, or Super Admin
+            // Allow deletion if user is the uploader or is a Finance Manager, IT Manager, Department Manager, or Super Admin
             if (!pdf.getUploadedBy().equals(currentUser.getUsername()) && 
                 !"FINANCE_MANAGER".equals(currentUser.getRole().name()) &&
                 !"IT_MANAGER".equals(currentUser.getRole().name()) &&
+                !"DEPARTMENT_MANAGER".equals(currentUser.getRole().name()) &&
                 !"SUPERADMIN".equals(currentUser.getRole().name())) {
                 return Map.of("success", false, "message", "Access denied. You can only delete your own PDFs.");
             }
@@ -187,6 +259,86 @@ public class PdfController {
             } else {
                 return Map.of("success", false, "message", "Failed to delete PDF");
             }
+            
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/department-pending")
+    public Map<String, Object> getDepartmentPendingPdfs(@RequestParam String sessionId) {
+        try {
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"DEPARTMENT_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only Department Managers can access department pending PDFs.");
+            }
+            
+            List<VendorPdf> pdfs = pdfService.getDepartmentPendingPdfs();
+            return Map.of("success", true, "pdfs", pdfs);
+            
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/department-all")
+    public Map<String, Object> getAllDepartmentPdfs(@RequestParam String sessionId) {
+        try {
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"DEPARTMENT_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only Department Managers can access department PDFs.");
+            }
+            
+            List<VendorPdf> pdfs = pdfService.getAllDepartmentPdfs();
+            return Map.of("success", true, "pdfs", pdfs);
+            
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/it-pending")
+    public Map<String, Object> getItPendingPdfs(@RequestParam String sessionId) {
+        try {
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"IT_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only IT Managers can access IT pending PDFs.");
+            }
+
+            List<VendorPdf> pdfs = pdfService.getItPendingPdfs();
+            return Map.of("success", true, "pdfs", pdfs);
+
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/it-all")
+    public Map<String, Object> getAllItPdfs(@RequestParam String sessionId) {
+        try {
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"IT_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only IT Managers can access IT PDFs.");
+            }
+
+            List<VendorPdf> pdfs = pdfService.getAllItPdfs();
+            return Map.of("success", true, "pdfs", pdfs);
+
+        } catch (Exception e) {
+            return Map.of("success", false, "message", "An error occurred: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/finance-pending")
+    public Map<String, Object> getFinancePendingPdfs(@RequestParam String sessionId) {
+        try {
+            User currentUser = authService.getCurrentUser(sessionId);
+            if (currentUser == null || !"FINANCE_MANAGER".equals(currentUser.getRole().name())) {
+                return Map.of("success", false, "message", "Access denied. Only Finance Managers can access Finance pending PDFs.");
+            }
+            
+            List<VendorPdf> pdfs = pdfService.getFinancePendingPdfs();
+            return Map.of("success", true, "pdfs", pdfs);
             
         } catch (Exception e) {
             return Map.of("success", false, "message", "An error occurred: " + e.getMessage());

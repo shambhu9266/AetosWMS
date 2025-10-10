@@ -1,0 +1,211 @@
+<div class="user-management-container">
+  <!-- Header -->
+  <div class="header">
+    <h1>Master</h1>
+    <p class="subtitle">Manage system users and their permissions</p>
+  </div>
+
+  <!-- Permission Check -->
+  <div class="permission-denied" *ngIf="!hasPermission">
+    <div class="permission-card">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>Access Denied</h3>
+      <p>You need SUPERADMIN role to access user management.</p>
+      <p>Current role: {{ authService.getCurrentUser()?.role || 'Unknown' }}</p>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar" *ngIf="hasPermission">
+    <button class="btn btn-primary" (click)="openCreateForm()" [disabled]="loading">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Create New User
+    </button>
+    
+    <button class="btn btn-secondary" (click)="loadUsers()" [disabled]="loading">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12Z" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 3V12L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Create User Modal -->
+  <div class="modal-overlay" *ngIf="showCreateForm" (click)="closeCreateForm()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Create New User</h3>
+        <button class="btn btn-icon" (click)="closeCreateForm()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <form (ngSubmit)="createUser()" #userForm="ngForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="fullName">Full Name *</label>
+              <input 
+                type="text" 
+                id="fullName" 
+                name="fullName" 
+                [(ngModel)]="newUser.fullName" 
+                required 
+                placeholder="Enter full name"
+                class="form-input"
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="username">Username *</label>
+              <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                [(ngModel)]="newUser.username" 
+                required 
+                placeholder="Enter username"
+                class="form-input"
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="password">Password *</label>
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                [(ngModel)]="newUser.password" 
+                required 
+                placeholder="Enter password"
+                class="form-input"
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="role">Role *</label>
+              <select 
+                id="role" 
+                name="role" 
+                [(ngModel)]="newUser.role" 
+                required 
+                class="form-select"
+              >
+                <option *ngFor="let role of roles" [value]="role.value">
+                  {{ role.label }}
+                </option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="department">Department *</label>
+              <select 
+                id="department" 
+                name="department" 
+                [(ngModel)]="newUser.department" 
+                required 
+                class="form-select"
+              >
+                <option value="">Select Department</option>
+                <option *ngFor="let dept of departments" [value]="dept">
+                  {{ dept }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCreateForm()" [disabled]="loading">
+            Cancel
+          </button>
+          
+          <button type="submit" class="btn btn-success" [disabled]="loading || !userForm.form.valid">
+            {{ loading ? 'Creating...' : 'Create User' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="users-section" *ngIf="hasPermission">
+    <div class="section-header">
+      <h2>All Users ({{ users.length }})</h2>
+    </div>
+    
+    <div class="loading" *ngIf="loading">
+      <div class="spinner"></div>
+      <p>Loading users...</p>
+    </div>
+    
+    <div class="table-container" *ngIf="!loading && users.length > 0">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Full Name</th>
+            <th>Username</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users" class="user-row">
+            <td class="user-id">{{ user.id }}</td>
+            <td class="user-name">
+              <div class="name-cell">
+                <span class="full-name">{{ user.fullName }}</span>
+              </div>
+            </td>
+            <td class="username">@{{ user.username }}</td>
+            <td class="user-role">
+              <span class="role-badge" [ngClass]="'role-' + user.role.toLowerCase()">
+                {{ getRoleLabel(user.role) }}
+              </span>
+            </td>
+            <td class="user-department">{{ user.department }}</td>
+            <td class="user-status">
+              <span class="status-badge" [ngClass]="getStatusClass(user.isActive)">
+                <span class="status-dot"></span>
+                {{ getStatusText(user.isActive) }}
+              </span>
+            </td>
+            <td class="user-actions">
+              <button 
+                class="btn btn-sm" 
+                [ngClass]="user.isActive ? 'btn-warning' : 'btn-success'"
+                (click)="toggleUserStatus(user)" 
+                [disabled]="loading"
+                [title]="user.isActive ? 'Deactivate user' : 'Activate user'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ user.isActive ? 'Deactivate' : 'Activate' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="empty-state" *ngIf="!loading && users.length === 0">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>No Users Found</h3>
+      <p>No users are currently in the system.</p>
+    </div>
+  </div>
+</div>

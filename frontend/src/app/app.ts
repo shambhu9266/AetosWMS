@@ -2,11 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, Router } from '@angular/router';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { DialogComponent } from './components/dialog/dialog.component';
+import { ToastComponent } from './components/toast/toast.component';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, RouterOutlet, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, SidebarComponent, DialogComponent, ToastComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.css']
 })

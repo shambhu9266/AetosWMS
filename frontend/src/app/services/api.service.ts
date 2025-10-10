@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 
@@ -62,6 +62,7 @@ export interface VendorPdf {
   processed: boolean;
   rejected: boolean;
   rejectionReason?: string;
+  approvalStage?: string;
 }
 
 export interface UserPdfGroup {
@@ -73,7 +74,6 @@ export interface UserPdfGroup {
   lastUploadDate: string;
 }
 
-// New interface for grouping PDFs by requisition
 export interface RequisitionPdfGroup {
   requisitionId: number;
   requisitionInfo: Requisition | null;
@@ -97,44 +97,28 @@ export interface PurchaseOrderLineItem {
 export interface PurchaseOrder {
   id: number;
   poNumber: string;
-  
-  // Bill To Information
   billToCompany: string;
   billToAddress: string;
   billToPAN: string;
   billToGSTIN: string;
-  
-  // Vendor Information
   vendorName: string;
   vendorAddress: string;
   vendorContactPerson: string;
   vendorMobileNo: string;
-  
-  // Ship To Information
   shipToAddress: string;
-  
-  // Order Details
   scopeOfOrder: string;
   shippingMethod: string;
   shippingTerms: string;
   dateOfCompletion: string;
-  
-  // Line Items
   lineItems: PurchaseOrderLineItem[];
-  
-  // Financial Details
   subtotalAmount: number;
   freightCharges: number;
   gstRate: number;
   gstAmount: number;
   totalAmount: number;
-  
-  // Terms & Conditions
   termsAndConditions?: string;
   paymentTerms?: string;
   warranty?: string;
-  
-  // System Fields
   createdBy: string;
   department: string;
   status: string;
@@ -154,164 +138,115 @@ export class ApiService {
     private authService: AuthService
   ) {}
 
+  private getAuthParams(): HttpParams {
+    const token = this.authService.getToken();
+    if (!token) {
+      throw new Error('No active token');
+    }
+    return new HttpParams().set('sessionId', token);
+  }
+
   // Requisition methods
   getRequisitions(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/requisitions`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions`, { params: authParams });
   }
 
   createRequisition(request: CreateRequisitionRequest): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Creating requisition with sessionId:', sessionId);
-    if (!sessionId) {
-      console.error('DEBUG: No active session found!');
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: Creating requisition with JWT token');
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('itemName', request.itemName)
       .set('quantity', request.quantity.toString())
       .set('price', request.price.toString())
       .set('department', request.department);
     
     console.log('DEBUG: Making API call to create requisition with params:', params.toString());
-    return this.http.post<any>(`${this.baseUrl}/requisitions`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/requisitions`, null, { params: authParams });
   }
 
   createRequisitionWithItems(request: CreateRequisitionWithItemsRequest): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Creating requisition with items with sessionId:', sessionId);
-    if (!sessionId) {
-      console.error('DEBUG: No active session found! Please log in first.');
-      throw new Error('No active session. Please log in first.');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: ===== API SERVICE: createRequisitionWithItems called =====');
+    console.log('DEBUG: API Service - request:', request);
     
-    console.log('DEBUG: Making API call to create requisition with items with params:', params.toString());
-    console.log('DEBUG: Request body:', request);
-    return this.http.post<any>(`${this.baseUrl}/requisitions/multiple`, request, { params });
+    console.log('DEBUG: API Service - Making HTTP POST call to /requisitions/multiple');
+    console.log('DEBUG: API Service - request body:', request);
+    return this.http.post<any>(`${this.baseUrl}/requisitions/multiple`, request, { params: authParams });
   }
 
   getPendingItApprovals(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/it`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/it`, { params: authParams });
   }
 
   getPendingFinanceApprovals(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/finance`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/finance`, { params: authParams });
   }
 
   makeItDecision(id: number, decision: string, comments?: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    let params = new HttpParams()
-      .set('sessionId', sessionId)
-      .set('decision', decision);
+    const authParams = this.getAuthParams();
+    let params = authParams.set('decision', decision);
     
     if (comments) {
       params = params.set('comments', comments);
     }
     
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/it-decision`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/it-decision`, null, { params: authParams });
   }
 
   makeFinanceDecision(id: number, decision: string, comments?: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    let params = new HttpParams()
-      .set('sessionId', sessionId)
-      .set('decision', decision);
+    const authParams = this.getAuthParams();
+    let params = authParams.set('decision', decision);
     
     if (comments) {
       params = params.set('comments', comments);
     }
     
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/finance-decision`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/finance-decision`, null, { params: authParams });
   }
 
   // Notification methods
   getNotifications(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Getting notifications with sessionId:', sessionId);
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: Getting notifications with JWT token');
     console.log('DEBUG: Making API call to:', `${this.baseUrl}/notifications`);
-    return this.http.get<any>(`${this.baseUrl}/notifications`, { params });
+    return this.http.get<any>(`${this.baseUrl}/notifications`, { params: authParams });
   }
 
   deleteNotification(notificationId: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-    
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.delete<any>(`${this.baseUrl}/notifications/${notificationId}`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.delete<any>(`${this.baseUrl}/notifications/${notificationId}`, { params: authParams });
   }
 
   // Budget methods
   getBudgets(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Getting budgets with sessionId:', sessionId);
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: Getting budgets with JWT token');
     console.log('DEBUG: Making API call to:', `${this.baseUrl}/budgets`);
-    return this.http.get<any>(`${this.baseUrl}/budgets`, { params });
+    return this.http.get<any>(`${this.baseUrl}/budgets`, { params: authParams });
   }
 
   // Dashboard methods
   getApprovedThisMonth(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Getting approved this month with sessionId:', sessionId);
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: Getting approved this month with JWT token');
     console.log('DEBUG: Making API call to:', `${this.baseUrl}/requisitions/approved-this-month`);
-    return this.http.get<any>(`${this.baseUrl}/requisitions/approved-this-month`, { params });
+    return this.http.get<any>(`${this.baseUrl}/requisitions/approved-this-month`, { params: authParams });
   }
 
   // PDF methods
   uploadPdf(file: File, description?: string, requisitionId?: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
+    const token = this.authService.getToken();
+    if (!token) {
+      throw new Error('No active token');
     }
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('sessionId', sessionId);
+    formData.append('sessionId', token);
     if (description) {
       formData.append('description', description);
     }
@@ -323,71 +258,41 @@ export class ApiService {
   }
 
   getPdfs(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/pdf/list`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/list`, { params: authParams });
   }
 
   downloadPdf(pdfId: number): Observable<Blob> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
     return this.http.get(`${this.baseUrl}/pdf/download/${pdfId}`, { 
-      params, 
+      params: authParams, 
       responseType: 'blob' 
     });
   }
 
   markPdfAsProcessed(pdfId: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.post<any>(`${this.baseUrl}/pdf/mark-processed/${pdfId}`, null, { params });
+    const authParams = this.getAuthParams();
+    return this.http.post<any>(`${this.baseUrl}/pdf/mark-processed/${pdfId}`, null, { params: authParams });
   }
 
   rejectPdf(pdfId: number, rejectionReason: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const authParams = this.getAuthParams();
+    const params = authParams
       .set('rejectionReason', rejectionReason);
 
-    return this.http.post<any>(`${this.baseUrl}/pdf/reject/${pdfId}`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/pdf/reject/${pdfId}`, null, { params: authParams });
   }
 
   deletePdf(pdfId: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-
-    return this.http.delete<any>(`${this.baseUrl}/pdf/${pdfId}`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.delete<any>(`${this.baseUrl}/pdf/${pdfId}`, { params: authParams });
   }
 
   // Purchase Order methods
   createPurchaseOrder(poData: any): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('billToCompany', poData.billToCompany)
       .set('billToAddress', poData.billToAddress)
       .set('billToPAN', poData.billToPAN || '')
@@ -419,37 +324,23 @@ export class ApiService {
       params.set('warranty', poData.warranty);
     }
 
-    return this.http.post<any>(`${this.baseUrl}/po/create`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/po/create`, null, { params: authParams });
   }
 
   getPurchaseOrders(): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/po/list`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/po/list`, { params: authParams });
   }
 
   getPurchaseOrderById(id: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.get<any>(`${this.baseUrl}/po/${id}`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/po/${id}`, { params: authParams });
   }
 
   updatePurchaseOrder(id: number, poData: any): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('vendorName', poData.vendorName)
       .set('vendorAddress', poData.vendorAddress)
       .set('vendorContact', poData.vendorContact)
@@ -464,106 +355,68 @@ export class ApiService {
       params.set('termsAndConditions', poData.termsAndConditions);
     }
 
-    return this.http.put<any>(`${this.baseUrl}/po/${id}`, null, { params });
+    return this.http.put<any>(`${this.baseUrl}/po/${id}`, null, { params: authParams });
   }
 
   updatePOStatus(id: number, status: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('status', status);
 
-    return this.http.put<any>(`${this.baseUrl}/po/${id}/status`, null, { params });
+    return this.http.put<any>(`${this.baseUrl}/po/${id}/status`, null, { params: authParams });
   }
 
   deletePurchaseOrder(id: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
-    return this.http.delete<any>(`${this.baseUrl}/po/${id}`, { params });
+    const authParams = this.getAuthParams();
+    return this.http.delete<any>(`${this.baseUrl}/po/${id}`, { params: authParams });
   }
 
   downloadPurchaseOrderPdf(poId: number): Observable<Blob> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
+    const authParams = this.getAuthParams();
     return this.http.get(`${this.baseUrl}/po/${poId}/pdf`, {
-      params,
+      params: authParams,
       responseType: 'blob'
     });
   }
 
   sendPurchaseOrderEmail(poId: number, vendorEmail: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('vendorEmail', vendorEmail);
 
-    return this.http.post<any>(`${this.baseUrl}/po/${poId}/send-email`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/po/${poId}/send-email`, null, { params: authParams });
   }
 
   sendRequisitionEmail(requisitionId: number, vendorEmail: string, vendorName: string): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    if (!sessionId) {
-      throw new Error('No active session');
-    }
+    const authParams = this.getAuthParams();
 
-    const params = new HttpParams()
-      .set('sessionId', sessionId)
+    const params = authParams
       .set('vendorEmail', vendorEmail)
       .set('vendorName', vendorName);
 
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/send-email`, null, { params });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/send-email`, null, { params: authParams });
   }
 
   updateRequisition(requisitionId: number, request: CreateRequisitionWithItemsRequest): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Update requisition - sessionId:', sessionId);
+    const authParams = this.getAuthParams();
     console.log('DEBUG: Update requisition - requisitionId:', requisitionId);
     console.log('DEBUG: Update requisition - request:', request);
     
-    if (!sessionId) {
-      console.error('DEBUG: No active session found!');
-      throw new Error('No active session');
-    }
-
-    const params = new HttpParams().set('sessionId', sessionId);
     console.log('DEBUG: Making PUT request to:', `${this.baseUrl}/requisitions/${requisitionId}`);
-    console.log('DEBUG: With params:', params.toString());
     console.log('DEBUG: With body:', request);
     
-    return this.http.put<any>(`${this.baseUrl}/requisitions/${requisitionId}`, request, { params });
+    return this.http.put<any>(`${this.baseUrl}/requisitions/${requisitionId}`, request, { params: authParams });
   }
 
   deleteRequisition(requisitionId: number): Observable<any> {
-    const sessionId = this.authService.getSessionId();
-    console.log('DEBUG: Delete requisition - sessionId:', sessionId);
+    const authParams = this.getAuthParams();
     console.log('DEBUG: Delete requisition - requisitionId:', requisitionId);
-    
-    if (!sessionId) {
-      console.error('DEBUG: No active session found!');
-      throw new Error('No active session');
-    }
 
-    const params = new HttpParams().set('sessionId', sessionId);
     console.log('DEBUG: Making DELETE request to:', `${this.baseUrl}/requisitions/${requisitionId}`);
-    console.log('DEBUG: With params:', params.toString());
     
-    return this.http.delete<any>(`${this.baseUrl}/requisitions/${requisitionId}`, { params });
+    return this.http.delete<any>(`${this.baseUrl}/requisitions/${requisitionId}`, { params: authParams });
   }
 
   // Helper method to group PDFs by user
@@ -702,5 +555,153 @@ export class ApiService {
     
     console.log('DEBUG: Final requisition groups result:', result);
     return result;
+  }
+
+  // Department Manager Methods
+  getPendingDepartmentRequisitions(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/department`, { params: authParams });
+  }
+
+  departmentDecision(requisitionId: number, decision: string, comments?: string): Observable<any> {
+    const authParams = this.getAuthParams();
+    const params = authParams
+      .set('decision', decision);
+    
+    if (comments) {
+      params.set('comments', comments);
+    }
+    
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/department-decision`, null, { params: authParams });
+  }
+
+  // PDF approval methods
+  getDepartmentPendingPdfs(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/department-pending`, { params: authParams });
+  }
+
+  getAllDepartmentPdfs(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/department-all`, { params: authParams });
+  }
+
+  getItPendingPdfs(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/it-pending`, { params: authParams });
+  }
+
+  getAllItPdfs(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/it-all`, { params: authParams });
+  }
+
+  getFinancePendingPdfs(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/pdf/finance-pending`, { params: authParams });
+  }
+
+  departmentApprovePdf(pdfId: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    console.log('DEBUG: departmentApprovePdf called with pdfId:', pdfId);
+    const url = `${this.baseUrl}/pdf/department-approve/${pdfId}`;
+    console.log('DEBUG: Making API call to:', url);
+    return this.http.post<any>(url, null, { params: authParams });
+  }
+
+  itApprovePdf(pdfId: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.post<any>(`${this.baseUrl}/pdf/it-approve/${pdfId}`, null, { params: authParams });
+  }
+
+  financeApprovePdf(pdfId: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.post<any>(`${this.baseUrl}/pdf/finance-approve/${pdfId}`, null, { params: authParams });
+  }
+
+  // Master APIs (SUPERADMIN only)
+  createUser(username: string, password: string, fullName: string, role: string, department: string): Observable<any> {
+    const authParams = this.getAuthParams();
+
+    const params = authParams
+      .set('username', username)
+      .set('password', password)
+      .set('fullName', fullName)
+      .set('role', role)
+      .set('department', department);
+
+    return this.http.post<any>(`${this.baseUrl}/auth/create-user`, null, { params });
+  }
+
+  getAllUsers(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/auth/users`, { params: authParams });
+  }
+
+  updateUserStatus(userId: number, isActive: boolean): Observable<any> {
+    const authParams = this.getAuthParams();
+
+    const params = authParams
+      .set('userId', userId.toString())
+      .set('isActive', isActive.toString());
+
+    return this.http.post<any>(`${this.baseUrl}/auth/update-user-status`, null, { params: authParams });
+  }
+
+  // Department Manager Dashboard Methods
+  getPendingDepartmentApprovals(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/pending/department`, { params: authParams });
+  }
+
+  getActiveOrders(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/active-orders`, { params: authParams });
+  }
+
+  getRecentRequisitions(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/requisitions/recent`, { params: authParams });
+  }
+
+  // Department Management Methods
+  getAllDepartments(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/departments`, { params: authParams });
+  }
+
+  getDepartmentById(id: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/departments/${id}`, { params: authParams });
+  }
+
+  createDepartment(name: string, description: string, managerName?: string, managerUsername?: string, budget?: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    const params: any = { ...authParams, name, description };
+    if (managerName) params['managerName'] = managerName;
+    if (managerUsername) params['managerUsername'] = managerUsername;
+    if (budget) params['budget'] = budget.toString();
+    return this.http.post<any>(`${this.baseUrl}/departments`, null, { params });
+  }
+
+  updateDepartment(id: number, name?: string, description?: string, managerName?: string, managerUsername?: string, budget?: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    const params: any = { ...authParams };
+    if (name) params['name'] = name;
+    if (description) params['description'] = description;
+    if (managerName) params['managerName'] = managerName;
+    if (managerUsername) params['managerUsername'] = managerUsername;
+    if (budget) params['budget'] = budget.toString();
+    return this.http.put<any>(`${this.baseUrl}/departments/${id}`, null, { params });
+  }
+
+  deleteDepartment(id: number): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.delete<any>(`${this.baseUrl}/departments/${id}`, { params: authParams });
+  }
+
+  getDepartmentStats(): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.get<any>(`${this.baseUrl}/departments/stats`, { params: authParams });
   }
 }

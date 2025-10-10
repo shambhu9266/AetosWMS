@@ -1,0 +1,166 @@
+<div class="department-manager-dashboard">
+  <div class="header">
+    <h2>Department Manager Dashboard</h2>
+    <p>Review and approve requisitions and PDFs from your department</p>
+  </div>
+
+  <div class="error" *ngIf="error">
+    {{ error }}
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'requisitions'"
+      (click)="setActiveTab('requisitions')">
+      Requisitions ({{ pendingRequisitions.length }})
+    </button>
+    <button 
+      class="tab-button" 
+      [class.active]="activeTab === 'pdfs'"
+      (click)="setActiveTab('pdfs')">
+      PDFs ({{ pendingPdfs.length }})
+    </button>
+  </div>
+
+  <div class="loading" *ngIf="loading && !selectedRequisition">
+    Loading pending items...
+  </div>
+
+  <div class="content" *ngIf="!loading || selectedRequisition">
+    <!-- Pending Requisitions List -->
+    <div class="pending-requisitions" *ngIf="!selectedRequisition && activeTab === 'requisitions'">
+      <h3>Pending Department Approvals</h3>
+      
+      <div class="requisitions-list" *ngIf="pendingRequisitions.length > 0">
+        <div class="requisition-card" *ngFor="let req of pendingRequisitions" (click)="selectRequisition(req)">
+          <div class="requisition-header">
+            <span class="requisition-id">#{{ req.id }}</span>
+            <span class="requisition-date">{{ formatDate(req.createdAt) }}</span>
+          </div>
+          
+          <div class="requisition-details">
+            <h4>{{ getItemDescription(req) }}</h4>
+            <p><strong>Requested by:</strong> {{ req.createdBy }}</p>
+            <p><strong>Department:</strong> {{ req.department }}</p>
+            <p><strong>Total Amount:</strong> ₹{{ getTotalAmount(req) | number:'1.2-2' }}</p>
+          </div>
+          
+          <div class="requisition-status">
+            <span class="status-badge pending">Pending Department Approval</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-requisitions" *ngIf="pendingRequisitions.length === 0">
+        <p>No pending requisitions for your department.</p>
+      </div>
+    </div>
+
+    <!-- Pending PDFs List -->
+    <div class="pending-pdfs" *ngIf="!selectedRequisition && activeTab === 'pdfs'">
+      <h3>Pending PDF Approvals</h3>
+      
+      <div class="pdfs-list" *ngIf="pendingPdfs.length > 0">
+        <div class="pdf-card" *ngFor="let pdf of pendingPdfs">
+          <div class="pdf-header">
+            <span class="pdf-id">#{{ pdf.id }}</span>
+            <span class="pdf-date">{{ formatDate(pdf.uploadedAt) }}</span>
+          </div>
+          
+          <div class="pdf-details">
+            <h4>{{ pdf.originalFileName }}</h4>
+            <p><strong>Uploaded by:</strong> {{ pdf.uploadedBy }}</p>
+            <p><strong>Description:</strong> {{ pdf.description || 'No description provided' }}</p>
+            <p *ngIf="pdf.requisitionId"><strong>Linked to Requisition:</strong> #{{ pdf.requisitionId }}</p>
+          </div>
+          
+          <div class="pdf-actions">
+            <button class="btn-download" (click)="downloadPdf(pdf.id)">
+              📥 Download
+            </button>
+            <button class="btn-approve" (click)="approvePdf(pdf.id)">
+              ✓ Approve
+            </button>
+            <button class="btn-reject" (click)="rejectPdf(pdf.id, 'Rejected by Department Manager')">
+              ✗ Reject
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-pdfs" *ngIf="pendingPdfs.length === 0">
+        <p>No pending PDFs for your department.</p>
+      </div>
+    </div>
+
+    <!-- Decision Form -->
+    <div class="decision-form" *ngIf="selectedRequisition">
+      <div class="form-header">
+        <h3>Review Requisition #{{ selectedRequisition.id }}</h3>
+        <button class="back-btn" (click)="selectedRequisition = null">← Back to List</button>
+      </div>
+      
+      <div class="requisition-details" *ngIf="selectedRequisition">
+        <div class="detail-row">
+          <label>Requested by:</label>
+          <span>{{ selectedRequisition.createdBy }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Department:</label>
+          <span>{{ selectedRequisition.department }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Items:</label>
+          <span>{{ getItemDescription(selectedRequisition) }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Total Amount:</label>
+          <span>₹{{ getTotalAmount(selectedRequisition) | number:'1.2-2' }}</span>
+        </div>
+        <div class="detail-row">
+          <label>Request Date:</label>
+          <span>{{ formatDate(selectedRequisition.createdAt) }}</span>
+        </div>
+      </div>
+
+      <div class="decision-section">
+        <h4>Make Decision</h4>
+        
+        <div class="decision-options">
+          <label class="radio-option">
+            <input type="radio" name="decision" value="APPROVE" [(ngModel)]="decision">
+            <span class="radio-label approve">✓ Approve</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="decision" value="REJECT" [(ngModel)]="decision">
+            <span class="radio-label reject">✗ Reject</span>
+          </label>
+        </div>
+
+        <div class="comments-section">
+          <label for="comments">Comments (Optional):</label>
+          <textarea 
+            id="comments" 
+            [(ngModel)]="comments" 
+            placeholder="Add any comments about your decision..."
+            rows="3">
+          </textarea>
+        </div>
+
+        <div class="form-actions">
+          <button 
+            class="submit-btn" 
+            (click)="makeDecision()" 
+            [disabled]="!decision || loading">
+            {{ loading ? 'Processing...' : 'Submit Decision' }}
+          </button>
+          <button class="cancel-btn" (click)="selectedRequisition = null">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

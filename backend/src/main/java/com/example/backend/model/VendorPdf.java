@@ -28,6 +28,8 @@ public class VendorPdf {
     private boolean isRejected = false;
     
     private String rejectionReason;
+    
+    private String approvalStage = "DEPARTMENT"; // DEPARTMENT, IT, FINANCE, APPROVED
 
     // Constructors
     public VendorPdf() {}
@@ -73,4 +75,7 @@ public class VendorPdf {
 
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public String getApprovalStage() { return approvalStage; }
+    public void setApprovalStage(String approvalStage) { this.approvalStage = approvalStage; }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, VendorPdf, Requisition } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
+import { AlertService } from '../../services/alert.service';
 
 @Component({
   selector: 'app-pdf-upload',
@@ -12,7 +13,11 @@ import { AuthService } from '../../services/auth.service';
   styleUrls: ['./pdf-upload.component.css']
 })
 export class PdfUploadComponent implements OnInit {
-  constructor(private apiService: ApiService, private authService: AuthService) {}
+  constructor(
+    private apiService: ApiService, 
+    private authService: AuthService,
+    private alertService: AlertService
+  ) {}
 
   protected readonly uploadedPdfs = signal<VendorPdf[]>([]);
   protected readonly availableRequisitions = signal<Requisition[]>([]);
@@ -162,15 +167,15 @@ export class PdfUploadComponent implements OnInit {
       this.apiService.deletePdf(pdf.id).subscribe({
         next: (response) => {
           if (response.success) {
-            alert('PDF deleted successfully!');
+            this.alertService.showError('PDF deleted successfully!');
             this.loadPdfs(); // Reload PDFs list
           } else {
-            alert('Failed to delete PDF: ' + response.message);
+            this.alertService.showError('Failed to delete PDF: ' + response.message);
           }
         },
         error: (error) => {
           console.error('Error deleting PDF:', error);
-          alert('Failed to delete PDF. Please try again.');
+          this.alertService.showError('Failed to delete PDF. Please try again.');
         }
       });
     }

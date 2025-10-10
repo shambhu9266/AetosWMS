@@ -43,7 +43,7 @@ git clone <your-repo-url>
 cd procure-management-system
 
 # Create environment file
-cp .env.example .env
+cp env.example .env
 # Edit .env with your production values
 ```
 
