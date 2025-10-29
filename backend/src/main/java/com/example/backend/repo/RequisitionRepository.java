@@ -44,4 +44,12 @@ public interface RequisitionRepository extends JpaRepository<Requisition, Long> 
     
     // Get top 10 recent requisitions
     List<Requisition> findTop10ByOrderByCreatedAtDesc();
+    
+    // Role-based filtering methods for recent requisitions
+    List<Requisition> findTop10ByDepartmentOrderByCreatedAtDesc(String department);
+    List<Requisition> findTop10ByCreatedByOrderByCreatedAtDesc(String createdBy);
+    
+    // Status-based filtering for recent requisitions
+    @Query("SELECT r FROM Requisition r WHERE r.status IN :statuses ORDER BY r.createdAt DESC")
+    List<Requisition> findTop10ByStatusInOrderByCreatedAtDesc(@Param("statuses") List<RequisitionStatus> statuses);
 }

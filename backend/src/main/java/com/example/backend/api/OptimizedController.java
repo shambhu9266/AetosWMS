@@ -15,6 +15,7 @@ import com.example.backend.model.UserRole;
 import com.example.backend.service.AuthService;
 
 import java.util.Map;
+import java.util.Arrays;
 
 @RestController
 @RequestMapping("/api/optimized")
@@ -129,8 +130,19 @@ public class OptimizedController {
             if (authService.isEmployee(currentUser)) {
                 // Employee sees only their PDFs
                 pdfs = vendorPdfRepository.findByUploadedByOrderByUploadedAtDesc(currentUser.getUsername(), pageable);
+            } else if ("DEPARTMENT_MANAGER".equals(currentUser.getRole().name())) {
+                // Department Managers see only PDFs from their department
+                pdfs = vendorPdfRepository.findByDepartmentOrderByUploadedAtDesc(currentUser.getDepartment(), pageable);
+            } else if ("IT_MANAGER".equals(currentUser.getRole().name())) {
+                // IT Managers see PDFs that have been approved by department managers
+                pdfs = vendorPdfRepository.findByApprovalStageInOrderByUploadedAtDesc(
+                    Arrays.asList("IT", "FINANCE", "APPROVED"), pageable);
+            } else if ("FINANCE_MANAGER".equals(currentUser.getRole().name())) {
+                // Finance Managers see PDFs that have been approved by IT managers
+                pdfs = vendorPdfRepository.findByApprovalStageInOrderByUploadedAtDesc(
+                    Arrays.asList("FINANCE", "APPROVED"), pageable);
             } else {
-                // Managers see all PDFs
+                // Super Admin sees all PDFs
                 pdfs = vendorPdfRepository.findAllByOrderByUploadedAtDesc(pageable);
             }
             

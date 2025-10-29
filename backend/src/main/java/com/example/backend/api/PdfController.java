@@ -50,7 +50,7 @@ public class PdfController {
                 return Map.of("success", false, "message", "File size must be less than 10MB.");
             }
             
-            VendorPdf uploadedPdf = pdfService.uploadPdf(file, currentUser.getUsername(), description, requisitionId);
+            VendorPdf uploadedPdf = pdfService.uploadPdf(file, currentUser.getUsername(), description, requisitionId, currentUser.getDepartment());
             
             return Map.of("success", true, "message", "PDF uploaded successfully", "pdf", uploadedPdf);
             
@@ -70,13 +70,20 @@ public class PdfController {
             }
             
             List<VendorPdf> pdfs;
-            if ("FINANCE_MANAGER".equals(currentUser.getRole().name()) || 
-                "SUPERADMIN".equals(currentUser.getRole().name()) || 
-                "IT_MANAGER".equals(currentUser.getRole().name())) {
-                // Finance Managers, Super Admins, and IT Managers see all PDFs
+            if ("SUPERADMIN".equals(currentUser.getRole().name())) {
+                // Super Admins see all PDFs
                 pdfs = pdfService.getAllPdfs();
+            } else if ("DEPARTMENT_MANAGER".equals(currentUser.getRole().name())) {
+                // Department Managers see only PDFs from their department (following approval workflow)
+                pdfs = pdfService.getPdfsByDepartment(currentUser.getDepartment());
+            } else if ("IT_MANAGER".equals(currentUser.getRole().name())) {
+                // IT Managers see PDFs that have been approved by department managers
+                pdfs = pdfService.getAllItPdfs();
+            } else if ("FINANCE_MANAGER".equals(currentUser.getRole().name())) {
+                // Finance Managers see PDFs that have been approved by IT managers
+                pdfs = pdfService.getAllFinancePdfs();
             } else {
-                // All other users see only their uploaded PDFs
+                // All other users (employees) see only their uploaded PDFs
                 pdfs = pdfService.getPdfsByUploader(currentUser.getUsername());
             }
             
@@ -273,7 +280,8 @@ public class PdfController {
                 return Map.of("success", false, "message", "Access denied. Only Department Managers can access department pending PDFs.");
             }
             
-            List<VendorPdf> pdfs = pdfService.getDepartmentPendingPdfs();
+            // Department managers can only see PDFs from requisitions in their department
+            List<VendorPdf> pdfs = pdfService.getDepartmentPendingPdfsByDepartment(currentUser.getDepartment());
             return Map.of("success", true, "pdfs", pdfs);
             
         } catch (Exception e) {
@@ -289,7 +297,7 @@ public class PdfController {
                 return Map.of("success", false, "message", "Access denied. Only Department Managers can access department PDFs.");
             }
             
-            List<VendorPdf> pdfs = pdfService.getAllDepartmentPdfs();
+            List<VendorPdf> pdfs = pdfService.getAllDepartmentPdfsByDepartment(currentUser.getDepartment());
             return Map.of("success", true, "pdfs", pdfs);
             
         } catch (Exception e) {
@@ -305,6 +313,7 @@ public class PdfController {
                 return Map.of("success", false, "message", "Access denied. Only IT Managers can access IT pending PDFs.");
             }
 
+            // IT Managers see PDFs that have been approved by department managers
             List<VendorPdf> pdfs = pdfService.getItPendingPdfs();
             return Map.of("success", true, "pdfs", pdfs);
 
@@ -337,6 +346,7 @@ public class PdfController {
                 return Map.of("success", false, "message", "Access denied. Only Finance Managers can access Finance pending PDFs.");
             }
             
+            // Finance Managers see PDFs that have been approved by IT managers
             List<VendorPdf> pdfs = pdfService.getFinancePendingPdfs();
             return Map.of("success", true, "pdfs", pdfs);
             

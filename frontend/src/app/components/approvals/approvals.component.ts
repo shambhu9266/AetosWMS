@@ -5,6 +5,14 @@ import { ApiService, Requisition, RequisitionItem } from '../../services/api.ser
 import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
 
+interface Budget {
+  id: number;
+  department: string;
+  totalBudget: number;
+  usedBudget: number;
+  remainingBudget: number;
+}
+
 @Component({
   selector: 'app-approvals',
   standalone: true,
@@ -23,6 +31,8 @@ export class ApprovalsComponent implements OnInit {
   protected readonly departmentPendings = signal<Requisition[]>([]);
   protected readonly itPendings = signal<Requisition[]>([]);
   protected readonly finPendings = signal<Requisition[]>([]);
+  protected readonly budgets = signal<Budget[]>([]);
+  protected readonly budgetLoading = signal<boolean>(false);
   
 
   ngOnInit() {
@@ -34,6 +44,7 @@ export class ApprovalsComponent implements OnInit {
     
     this.initializeActiveTab();
     this.loadApprovals();
+    this.loadBudgets();
   }
 
   private initializeActiveTab() {
@@ -163,7 +174,7 @@ export class ApprovalsComponent implements OnInit {
       return;
     }
 
-    this.apiService.departmentDecision(id, sessionId, decision).subscribe({
+    this.apiService.departmentDecision(id, decision).subscribe({
       next: (response) => {
         if (response.success) {
           console.log('Department Decision successful:', response);
@@ -192,6 +203,35 @@ export class ApprovalsComponent implements OnInit {
       return requisition.items.reduce((total, item) => total + (item.quantity * item.price), 0);
     }
     return requisition.price || 0;
+  }
+
+  // Budget methods
+  private loadBudgets() {
+    this.budgetLoading.set(true);
+    this.apiService.getBudgets().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.budgets.set(response.budgets || []);
+        }
+        this.budgetLoading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading budgets:', error);
+        this.budgetLoading.set(false);
+      }
+    });
+  }
+
+  getBudgetProgressPercentage(budget: Budget): number {
+    if (budget.totalBudget === 0) return 0;
+    return (budget.usedBudget / budget.totalBudget) * 100;
+  }
+
+  getBudgetStatusClass(budget: Budget): string {
+    const percentage = this.getBudgetProgressPercentage(budget);
+    if (percentage >= 90) return 'critical';
+    if (percentage >= 75) return 'warning';
+    return 'healthy';
   }
 
 }

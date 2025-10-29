@@ -1,3 +1,47 @@
+/* Import from Requisition - UI Enhancements */
+.card-header .btn-secondary {
+  margin-top: 0.75rem;
+}
+
+/* Requisition list table inside modal */
+.table-container {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table thead tr {
+  background: #f8fafc;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+}
+
+.data-table th {
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.data-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
 .purchase-orders-page {
   padding: 2rem;
   max-width: 1200px;

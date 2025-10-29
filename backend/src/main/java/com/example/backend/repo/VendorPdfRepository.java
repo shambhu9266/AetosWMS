@@ -49,6 +49,24 @@ public interface VendorPdfRepository extends JpaRepository<VendorPdf, Long> {
     List<VendorPdf> findByApprovalStageOrderByUploadedAtDesc(String approvalStage);
     Page<VendorPdf> findByApprovalStageOrderByUploadedAtDesc(String approvalStage, Pageable pageable);
     
+    // Multiple approval stage queries
+    List<VendorPdf> findByApprovalStageInOrderByUploadedAtDesc(java.util.List<String> approvalStages);
+    Page<VendorPdf> findByApprovalStageInOrderByUploadedAtDesc(java.util.List<String> approvalStages, Pageable pageable);
+    
+    // Department queries
+    List<VendorPdf> findByDepartmentOrderByUploadedAtDesc(String department);
+    Page<VendorPdf> findByDepartmentOrderByUploadedAtDesc(String department, Pageable pageable);
+    
+    // Department and approval stage queries
+    List<VendorPdf> findByDepartmentAndApprovalStageOrderByUploadedAtDesc(String department, String approvalStage);
+    Page<VendorPdf> findByDepartmentAndApprovalStageOrderByUploadedAtDesc(String department, String approvalStage, Pageable pageable);
+    
     // Count by approval stage
     long countByApprovalStage(String approvalStage);
+    
+    // Count by department
+    long countByDepartment(String department);
+    
+    // Count by department and approval stage
+    long countByDepartmentAndApprovalStage(String department, String approvalStage);
 }

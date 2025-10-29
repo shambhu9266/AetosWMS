@@ -30,6 +30,8 @@ public class VendorPdf {
     private String rejectionReason;
     
     private String approvalStage = "DEPARTMENT"; // DEPARTMENT, IT, FINANCE, APPROVED
+    
+    private String department; // Department of the user who uploaded the PDF
 
     // Constructors
     public VendorPdf() {}
@@ -78,4 +80,7 @@ public class VendorPdf {
 
     public String getApprovalStage() { return approvalStage; }
     public void setApprovalStage(String approvalStage) { this.approvalStage = approvalStage; }
+
+    public String getDepartment() { return department; }
+    public void setDepartment(String department) { this.department = department; }
 }

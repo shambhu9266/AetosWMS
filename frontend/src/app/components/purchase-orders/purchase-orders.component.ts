@@ -1,7 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, PurchaseOrder } from '../../services/api.service';
+import { ApiService, PurchaseOrder, Requisition } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import { AlertService } from '../../services/alert.service';
 
@@ -21,6 +21,8 @@ export class PurchaseOrdersComponent implements OnInit {
 
   protected readonly purchaseOrders = signal<PurchaseOrder[]>([]);
   protected readonly activeTab = signal<string>('create');
+  protected readonly showRequisitionModal = signal<boolean>(false);
+  protected readonly approvedRequisitions = signal<Requisition[]>([]);
   
   // PO Creation Form
   poForm = {
@@ -106,6 +108,62 @@ export class PurchaseOrdersComponent implements OnInit {
 
   setActiveTab(tab: string) {
     this.activeTab.set(tab);
+  }
+
+  // Requisition import helpers
+  openRequisitionModal() {
+    this.showRequisitionModal.set(true);
+    // Lazy-load approved requisitions when opening modal
+    this.loadApprovedRequisitions();
+  }
+
+  closeRequisitionModal() {
+    this.showRequisitionModal.set(false);
+  }
+
+  private loadApprovedRequisitions() {
+    this.apiService.getRequisitions().subscribe({
+      next: (response) => {
+        if (response.success && Array.isArray(response.requisitions)) {
+          const approved = response.requisitions.filter((r: Requisition) => r.status === 'APPROVED');
+          this.approvedRequisitions.set(approved);
+        }
+      },
+      error: (error) => {
+        console.error('Error loading approved requisitions:', error);
+      }
+    });
+  }
+
+  applyRequisition(req: Requisition) {
+    // Map requisition to PO form
+    const items = Array.isArray(req.items) && req.items.length > 0
+      ? req.items
+      : [{ itemName: req.itemName, quantity: req.quantity, price: req.price } as any];
+
+    this.poForm.lineItems = items.map((li: any, idx: number) => {
+      const qty = Number(li.quantity) || 0;
+      const price = Number(li.price) || 0;
+      return {
+        srNo: idx + 1,
+        quantity: String(qty),
+        unit: 'Nos',
+        description: li.itemName || '',
+        unitPrice: price,
+        amount: qty * price
+      };
+    });
+
+    // Set department from requisition
+    this.poForm.department = req.department || this.poForm.department;
+
+    // Optionally set scope of order as concatenated items
+    const names = items.map((i: any) => i.itemName).filter(Boolean);
+    if (names.length > 0) {
+      this.poForm.scopeOfOrder = `Supply of ${names.join(', ')}`;
+    }
+
+    this.closeRequisitionModal();
   }
 
   createPurchaseOrder() {
@@ -428,6 +486,27 @@ export class PurchaseOrdersComponent implements OnInit {
         this.alertService.showError('Error downloading PDF. Please try again.');
       }
     });
+  }
+
+  // Helpers for requisition modal rendering
+  getRequisitionItemNames(req: Requisition): string {
+    if (req && Array.isArray(req.items) && req.items.length > 0) {
+      return req.items.map(i => i.itemName).filter(Boolean).join(', ');
+    }
+    return (req && (req as any).itemName) ? (req as any).itemName : '—';
+  }
+
+  getRequisitionTotal(req: Requisition): number {
+    if (req && Array.isArray(req.items) && req.items.length > 0) {
+      return req.items.reduce((sum, i) => {
+        const qty = Number((i as any).quantity) || 0;
+        const price = Number((i as any).price) || 0;
+        return sum + qty * price;
+      }, 0);
+    }
+    const qty = Number((req as any).quantity) || 0;
+    const price = Number((req as any).price) || 0;
+    return qty * price;
   }
 
   deletePurchaseOrder(po: PurchaseOrder) {

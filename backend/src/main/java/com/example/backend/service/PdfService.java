@@ -6,6 +6,7 @@ import com.example.backend.model.Requisition;
 import com.example.backend.repo.NotificationRepository;
 import com.example.backend.repo.VendorPdfRepository;
 import com.example.backend.repo.RequisitionRepository;
+import com.example.backend.repo.DepartmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,9 +32,12 @@ public class PdfService {
     @Autowired
     private RequisitionRepository requisitionRepository;
     
+    @Autowired
+    private DepartmentRepository departmentRepository;
+    
     private static final String UPLOAD_DIR = "uploads/pdfs/";
     
-    public VendorPdf uploadPdf(MultipartFile file, String uploadedBy, String description, Long requisitionId) throws IOException {
+    public VendorPdf uploadPdf(MultipartFile file, String uploadedBy, String description, Long requisitionId, String department) throws IOException {
         // Create upload directory if it doesn't exist
         Path uploadPath = Paths.get(UPLOAD_DIR);
         if (!Files.exists(uploadPath)) {
@@ -57,6 +61,18 @@ public class PdfService {
         vendorPdf.setUploadedBy(uploadedBy);
         vendorPdf.setDescription(description);
         vendorPdf.setRequisitionId(requisitionId);
+        
+        // Set department based on requisition's department, not employee's department
+        String pdfDepartment = department;
+        if (requisitionId != null) {
+            Requisition requisition = requisitionRepository.findById(requisitionId).orElse(null);
+            if (requisition != null) {
+                pdfDepartment = requisition.getDepartment();
+                System.out.println("DEBUG: PDF department set to requisition department: " + pdfDepartment);
+            }
+        }
+        vendorPdf.setDepartment(pdfDepartment);
+        
         vendorPdf.setUploadedAt(Instant.now());
         vendorPdf.setProcessed(false);
         
@@ -130,25 +146,48 @@ public class PdfService {
     private String getDepartmentManagerForPdf(VendorPdf vendorPdf) {
         // If PDF is linked to a requisition, get the department manager for that requisition's department
         if (vendorPdf.getRequisitionId() != null) {
+            System.out.println("DEBUG: PDF linked to requisition ID: " + vendorPdf.getRequisitionId());
             Requisition requisition = requisitionRepository.findById(vendorPdf.getRequisitionId()).orElse(null);
             if (requisition != null) {
+                System.out.println("DEBUG: Found requisition with department: " + requisition.getDepartment());
+                // Use the department from the requisition (not the employee's department)
                 return getDepartmentManager(requisition.getDepartment());
+            } else {
+                System.out.println("DEBUG: Requisition not found for ID: " + vendorPdf.getRequisitionId());
             }
+        } else {
+            System.out.println("DEBUG: PDF not linked to any requisition");
         }
         
         // Default to sales manager if no requisition linked
+        System.out.println("DEBUG: Using default sales manager for PDF notification");
         return "salesmanager";
     }
     
     private String getDepartmentManager(String department) {
-        // Map departments to their managers
-        switch (department.toLowerCase()) {
-            case "sales":
-                return "salesmanager";
-            case "it":
-                return "itmanager";
-            default:
-                return "salesmanager"; // Default fallback
+        try {
+            // Query the departments table to get the actual manager for this department
+            System.out.println("DEBUG: Looking up manager for department: " + department);
+            
+            return departmentRepository.findByName(department)
+                .map(dept -> {
+                    String managerUsername = dept.getManagerUsername();
+                    if (managerUsername != null && !managerUsername.trim().isEmpty()) {
+                        System.out.println("DEBUG: Found manager '" + managerUsername + "' for department '" + department + "'");
+                        return managerUsername;
+                    } else {
+                        System.out.println("DEBUG: No manager assigned for department '" + department + "', using fallback");
+                        return "salesmanager"; // Fallback for departments without managers
+                    }
+                })
+                .orElseGet(() -> {
+                    System.out.println("DEBUG: Department '" + department + "' not found in database, using fallback");
+                    return "salesmanager"; // Fallback for unknown departments
+                });
+        } catch (Exception e) {
+            System.err.println("DEBUG: Error getting department manager for '" + department + "': " + e.getMessage());
+            e.printStackTrace();
+            return "salesmanager"; // Safe fallback
         }
     }
     
@@ -210,6 +249,10 @@ public class PdfService {
     
     public List<VendorPdf> getPdfsByUploader(String uploadedBy) {
         return vendorPdfRepository.findByUploadedByOrderByUploadedAtDesc(uploadedBy);
+    }
+    
+    public List<VendorPdf> getPdfsByDepartment(String department) {
+        return vendorPdfRepository.findByDepartmentOrderByUploadedAtDesc(department);
     }
     
     public List<VendorPdf> getUnprocessedPdfs() {
@@ -279,6 +322,36 @@ public class PdfService {
         return vendorPdfRepository.findByApprovalStageOrderByUploadedAtDesc("FINANCE");
     }
     
+    public List<VendorPdf> getAllFinancePdfs() {
+        System.out.println("DEBUG: Getting all Finance PDFs");
+        
+        try {
+            // Get all PDFs that have been through Finance approval (FINANCE, APPROVED)
+            List<VendorPdf> allPdfs = vendorPdfRepository.findAllByOrderByUploadedAtDesc();
+            System.out.println("DEBUG: Found " + allPdfs.size() + " total PDFs");
+            
+            // Filter PDFs that are relevant to Finance managers
+            List<VendorPdf> financePdfs = allPdfs.stream()
+                .filter(pdf -> {
+                    String stage = pdf.getApprovalStage();
+                    return "FINANCE".equals(stage) || 
+                           "APPROVED".equals(stage);
+                })
+                .collect(java.util.stream.Collectors.toList());
+            
+            System.out.println("DEBUG: Filtered to " + financePdfs.size() + " Finance-relevant PDFs");
+            for (VendorPdf pdf : financePdfs) {
+                System.out.println("DEBUG: PDF ID: " + pdf.getId() + ", Stage: " + pdf.getApprovalStage() + ", File: " + pdf.getOriginalFileName());
+            }
+            
+            return financePdfs;
+        } catch (Exception e) {
+            System.out.println("DEBUG: Error getting all Finance PDFs, falling back to Finance pending: " + e.getMessage());
+            // Fallback: get only Finance pending PDFs
+            return getFinancePendingPdfs();
+        }
+    }
+    
     public List<VendorPdf> getAllDepartmentPdfs() {
         System.out.println("DEBUG: Getting all department PDFs");
         
@@ -308,6 +381,79 @@ public class PdfService {
             System.out.println("DEBUG: Error getting all department PDFs, falling back to department pending: " + e.getMessage());
             // Fallback: get only department pending PDFs
             return getDepartmentPendingPdfs();
+        }
+    }
+    
+    public List<VendorPdf> getDepartmentPendingPdfsByDepartment(String department) {
+        System.out.println("DEBUG: Getting department pending PDFs for department: " + department);
+        
+        try {
+            // Get PDFs by department and approval stage
+            List<VendorPdf> pdfs = vendorPdfRepository.findByDepartmentAndApprovalStageOrderByUploadedAtDesc(department, "DEPARTMENT");
+            System.out.println("DEBUG: Found " + pdfs.size() + " department pending PDFs for department: " + department);
+            
+            // Also get PDFs that are linked to requisitions from this department
+            List<VendorPdf> requisitionLinkedPdfs = getPdfsLinkedToRequisitionsInDepartment(department, "DEPARTMENT");
+            System.out.println("DEBUG: Found " + requisitionLinkedPdfs.size() + " requisition-linked PDFs for department: " + department);
+            
+            // Combine both lists and remove duplicates
+            java.util.Set<Long> existingIds = pdfs.stream().map(VendorPdf::getId).collect(java.util.stream.Collectors.toSet());
+            List<VendorPdf> additionalPdfs = requisitionLinkedPdfs.stream()
+                .filter(pdf -> !existingIds.contains(pdf.getId()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            pdfs.addAll(additionalPdfs);
+            System.out.println("DEBUG: Total department pending PDFs: " + pdfs.size());
+            
+            return pdfs;
+        } catch (Exception e) {
+            System.out.println("DEBUG: Error getting department pending PDFs by department, falling back to all department pending: " + e.getMessage());
+            // Fallback: get all department pending PDFs
+            return getDepartmentPendingPdfs();
+        }
+    }
+    
+    public List<VendorPdf> getAllDepartmentPdfsByDepartment(String department) {
+        System.out.println("DEBUG: Getting all department PDFs for department: " + department);
+        
+        try {
+            // Get all PDFs for the department that are relevant to department managers
+            List<VendorPdf> allPdfs = vendorPdfRepository.findByDepartmentOrderByUploadedAtDesc(department);
+            System.out.println("DEBUG: Found " + allPdfs.size() + " total PDFs for department: " + department);
+            
+            // Filter PDFs that are relevant to department managers
+            List<VendorPdf> departmentPdfs = allPdfs.stream()
+                .filter(pdf -> {
+                    String stage = pdf.getApprovalStage();
+                    return "DEPARTMENT".equals(stage) || 
+                           "IT".equals(stage) || 
+                           "FINANCE".equals(stage) || 
+                           "APPROVED".equals(stage);
+                })
+                .collect(java.util.stream.Collectors.toList());
+            
+            // Also get PDFs that are linked to requisitions from this department
+            List<VendorPdf> requisitionLinkedPdfs = getPdfsLinkedToRequisitionsInDepartment(department, "DEPARTMENT");
+            requisitionLinkedPdfs.addAll(getPdfsLinkedToRequisitionsInDepartment(department, "IT"));
+            requisitionLinkedPdfs.addAll(getPdfsLinkedToRequisitionsInDepartment(department, "FINANCE"));
+            requisitionLinkedPdfs.addAll(getPdfsLinkedToRequisitionsInDepartment(department, "APPROVED"));
+            
+            System.out.println("DEBUG: Found " + requisitionLinkedPdfs.size() + " requisition-linked PDFs for department: " + department);
+            
+            // Combine both lists and remove duplicates
+            java.util.Set<Long> existingIds = departmentPdfs.stream().map(VendorPdf::getId).collect(java.util.stream.Collectors.toSet());
+            List<VendorPdf> additionalPdfs = requisitionLinkedPdfs.stream()
+                .filter(pdf -> !existingIds.contains(pdf.getId()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            departmentPdfs.addAll(additionalPdfs);
+            
+            System.out.println("DEBUG: Total department-relevant PDFs: " + departmentPdfs.size());
+            return departmentPdfs;
+        } catch (Exception e) {
+            System.out.println("DEBUG: Error getting all department PDFs by department, falling back to all department PDFs: " + e.getMessage());
+            // Fallback: get all department PDFs
+            return getAllDepartmentPdfs();
         }
     }
     
@@ -531,5 +677,24 @@ public class PdfService {
         VendorPdf pdf = vendorPdfRepository.findById(pdfId).orElseThrow();
         Path filePath = Paths.get(pdf.getFilePath());
         return Files.readAllBytes(filePath);
+    }
+    
+    private List<VendorPdf> getPdfsLinkedToRequisitionsInDepartment(String department, String approvalStage) {
+        try {
+            // Get all PDFs that are linked to requisitions from the specified department
+            List<VendorPdf> allPdfs = vendorPdfRepository.findAllByOrderByUploadedAtDesc();
+            
+            return allPdfs.stream()
+                .filter(pdf -> pdf.getRequisitionId() != null && 
+                              approvalStage.equals(pdf.getApprovalStage()))
+                .filter(pdf -> {
+                    Requisition requisition = requisitionRepository.findById(pdf.getRequisitionId()).orElse(null);
+                    return requisition != null && department.equals(requisition.getDepartment());
+                })
+                .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            System.out.println("DEBUG: Error getting PDFs linked to requisitions in department: " + e.getMessage());
+            return new java.util.ArrayList<>();
+        }
     }
 }

@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").permitAll()
                 .requestMatchers("/api/departments/**").permitAll()
                 .requestMatchers("/api/dashboard/**").permitAll()
+                .requestMatchers("/api/budgets/**").permitAll()
                 .anyRequest().permitAll()
             )
             .headers(headers -> headers.frameOptions().disable())

@@ -204,6 +204,49 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Budget Summary Section - Below Requisitions -->
+    <div class="budget-summary-section" *ngIf="!budgetLoading() && budgets().length > 0">
+      <h3 class="section-title">💰 Budget Overview</h3>
+      <div class="budget-cards">
+        <div class="budget-card" *ngFor="let budget of budgets()" [class]="getBudgetStatusClass(budget)">
+          <div class="budget-header">
+            <h4>{{ budget.department }}</h4>
+            <span class="budget-status" [class]="getBudgetStatusClass(budget)">
+              {{ getBudgetProgressPercentage(budget) | number:'1.0-1' }}% Used
+            </span>
+          </div>
+          <div class="budget-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" 
+                   [style.width.%]="getBudgetProgressPercentage(budget)"
+                   [class]="getBudgetStatusClass(budget)">
+              </div>
+            </div>
+          </div>
+          <div class="budget-details">
+            <div class="budget-item">
+              <span class="label">Total Budget:</span>
+              <span class="value">{{ formatCurrency(budget.totalBudget) }}</span>
+            </div>
+            <div class="budget-item">
+              <span class="label">Used:</span>
+              <span class="value used">{{ formatCurrency(budget.usedBudget) }}</span>
+            </div>
+            <div class="budget-item">
+              <span class="label">Remaining:</span>
+              <span class="value remaining">{{ formatCurrency(budget.remainingBudget) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading state for budget -->
+    <div *ngIf="budgetLoading()" class="budget-loading">
+      <div class="loading-spinner"></div>
+      <p>Loading budget data...</p>
+    </div>
   </div>
 
 </div>

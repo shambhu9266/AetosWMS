@@ -78,26 +78,23 @@ export class RequisitionsComponent implements OnInit {
             // For SUPERADMIN, show all requisitions (no filtering)
             console.log('DEBUG: SUPERADMIN - showing all requisitions:', allRequisitions.length);
           } else if (this.authService.isDepartmentManager()) {
-            // For department managers, only show requisitions from their department that are pending department approval
+            // For department managers, show all requisitions from their department (any status)
             const currentUser = this.authService.getCurrentUser();
             allRequisitions = allRequisitions.filter((req: Requisition) => 
-              req.department === currentUser?.department && 
-              req.status === 'PENDING_DEPARTMENT_APPROVAL'
+              req.department === currentUser?.department
             );
           } else if (this.authService.canAccessITApprovals()) {
-            // For IT managers, show requisitions that are pending IT approval (after department approval)
-            console.log('DEBUG: IT manager - all requisitions before filtering:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
+            // For IT managers, only show requisitions that have been approved by department manager
             allRequisitions = allRequisitions.filter((req: Requisition) => 
-              req.status === 'PENDING_IT_APPROVAL'
+              req.status === 'PENDING_IT_APPROVAL' || req.status === 'PENDING_FINANCE_APPROVAL' || req.status === 'APPROVED' || req.status === 'REJECTED'
             );
-            console.log('DEBUG: IT manager - filtered requisitions:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
+            console.log('DEBUG: IT manager - showing approved requisitions:', allRequisitions.length);
           } else if (this.authService.canAccessFinanceApprovals()) {
-            // For finance managers, show requisitions that are pending finance approval or have been approved by finance
-            console.log('DEBUG: Finance manager - all requisitions before filtering:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
+            // For finance managers, only show requisitions that have been approved by both department and IT managers
             allRequisitions = allRequisitions.filter((req: Requisition) => 
-              req.status === 'PENDING_FINANCE_APPROVAL' || req.status === 'APPROVED'
+              req.status === 'PENDING_FINANCE_APPROVAL' || req.status === 'APPROVED' || req.status === 'REJECTED'
             );
-            console.log('DEBUG: Finance manager - filtered requisitions:', allRequisitions.map((req: Requisition) => ({ id: req.id, status: req.status })));
+            console.log('DEBUG: Finance manager - showing IT-approved requisitions:', allRequisitions.length);
           }
           // For other managers/admins, show all requisitions (no filtering)
           

@@ -26,6 +26,11 @@
       <div class="card-header">
         <h3>Create New Purchase Order</h3>
         <p class="card-description">Fill in the details to create a new purchase order</p>
+        <div style="margin-top: 8px;">
+          <button type="button" class="btn-secondary" (click)="openRequisitionModal()">
+            Import from Requisition
+          </button>
+        </div>
       </div>
       
       <form class="po-form" (ngSubmit)="createPurchaseOrder()">
@@ -428,6 +433,49 @@
           <span *ngIf="!isSendingEmail">Send Email</span>
           <span *ngIf="isSendingEmail">Sending...</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Requisition Import Modal -->
+  <div *ngIf="showRequisitionModal()" class="modal-overlay" (click)="closeRequisitionModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Select Approved Requisition</h3>
+        <button class="modal-close" (click)="closeRequisitionModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="approvedRequisitions().length === 0" class="empty-state">
+          <h4>No approved requisitions available</h4>
+          <p>Only requisitions with status APPROVED are shown here.</p>
+        </div>
+        <div *ngIf="approvedRequisitions().length > 0" class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Items</th>
+                <th>Department</th>
+                <th>Total</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of approvedRequisitions()">
+                <td>{{ r.id }}</td>
+                <td>{{ getRequisitionItemNames(r) }}</td>
+                <td>{{ r.department }}</td>
+                <td>{{ formatCurrency(getRequisitionTotal(r)) }}</td>
+                <td>
+                  <button type="button" class="btn-primary" (click)="applyRequisition(r)">Use</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" (click)="closeRequisitionModal()">Close</button>
       </div>
     </div>
   </div>

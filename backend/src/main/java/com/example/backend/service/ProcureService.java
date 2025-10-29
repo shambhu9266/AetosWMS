@@ -395,6 +395,31 @@ public class ProcureService {
         return budgetRepository.findAll();
     }
 
+    public void initializeDefaultBudgets() {
+        // Check if budgets already exist
+        if (!budgetRepository.findAll().isEmpty()) {
+            return;
+        }
+
+        // Create default budgets for each department
+        String[] departments = {"IT", "Sales", "Finance", "Management", "HR"};
+        BigDecimal[] amounts = {
+            new BigDecimal("150000.00"),
+            new BigDecimal("200000.00"),
+            new BigDecimal("300000.00"),
+            new BigDecimal("100000.00"),
+            new BigDecimal("80000.00")
+        };
+
+        for (int i = 0; i < departments.length; i++) {
+            Budget budget = new Budget();
+            budget.setDepartment(departments[i]);
+            budget.setTotalBudget(amounts[i]);
+            budget.setRemainingBudget(amounts[i]);
+            budgetRepository.save(budget);
+        }
+    }
+
     public List<Requisition> getApprovedThisMonth() {
         // Get current month start and end dates
         LocalDate now = LocalDate.now();

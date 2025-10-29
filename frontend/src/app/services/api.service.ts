@@ -163,7 +163,7 @@ export class ApiService {
       .set('department', request.department);
     
     console.log('DEBUG: Making API call to create requisition with params:', params.toString());
-    return this.http.post<any>(`${this.baseUrl}/requisitions`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/requisitions`, null, { params });
   }
 
   createRequisitionWithItems(request: CreateRequisitionWithItemsRequest): Observable<any> {
@@ -194,7 +194,7 @@ export class ApiService {
       params = params.set('comments', comments);
     }
     
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/it-decision`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/it-decision`, null, { params });
   }
 
   makeFinanceDecision(id: number, decision: string, comments?: string): Observable<any> {
@@ -205,7 +205,7 @@ export class ApiService {
       params = params.set('comments', comments);
     }
     
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/finance-decision`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${id}/finance-decision`, null, { params });
   }
 
   // Notification methods
@@ -280,7 +280,7 @@ export class ApiService {
     const params = authParams
       .set('rejectionReason', rejectionReason);
 
-    return this.http.post<any>(`${this.baseUrl}/pdf/reject/${pdfId}`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/pdf/reject/${pdfId}`, null, { params });
   }
 
   deletePdf(pdfId: number): Observable<any> {
@@ -324,7 +324,7 @@ export class ApiService {
       params.set('warranty', poData.warranty);
     }
 
-    return this.http.post<any>(`${this.baseUrl}/po/create`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/po/create`, null, { params });
   }
 
   getPurchaseOrders(): Observable<any> {
@@ -355,7 +355,7 @@ export class ApiService {
       params.set('termsAndConditions', poData.termsAndConditions);
     }
 
-    return this.http.put<any>(`${this.baseUrl}/po/${id}`, null, { params: authParams });
+    return this.http.put<any>(`${this.baseUrl}/po/${id}`, null, { params });
   }
 
   updatePOStatus(id: number, status: string): Observable<any> {
@@ -364,7 +364,7 @@ export class ApiService {
     const params = authParams
       .set('status', status);
 
-    return this.http.put<any>(`${this.baseUrl}/po/${id}/status`, null, { params: authParams });
+    return this.http.put<any>(`${this.baseUrl}/po/${id}/status`, null, { params });
   }
 
   deletePurchaseOrder(id: number): Observable<any> {
@@ -386,7 +386,7 @@ export class ApiService {
     const params = authParams
       .set('vendorEmail', vendorEmail);
 
-    return this.http.post<any>(`${this.baseUrl}/po/${poId}/send-email`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/po/${poId}/send-email`, null, { params });
   }
 
   sendRequisitionEmail(requisitionId: number, vendorEmail: string, vendorName: string): Observable<any> {
@@ -396,7 +396,7 @@ export class ApiService {
       .set('vendorEmail', vendorEmail)
       .set('vendorName', vendorName);
 
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/send-email`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/send-email`, null, { params });
   }
 
   updateRequisition(requisitionId: number, request: CreateRequisitionWithItemsRequest): Observable<any> {
@@ -565,14 +565,11 @@ export class ApiService {
 
   departmentDecision(requisitionId: number, decision: string, comments?: string): Observable<any> {
     const authParams = this.getAuthParams();
-    const params = authParams
-      .set('decision', decision);
-    
+    let params = authParams.set('decision', decision);
     if (comments) {
-      params.set('comments', comments);
+      params = params.set('comments', comments);
     }
-    
-    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/department-decision`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/requisitions/${requisitionId}/department-decision`, null, { params });
   }
 
   // PDF approval methods
@@ -645,7 +642,7 @@ export class ApiService {
       .set('userId', userId.toString())
       .set('isActive', isActive.toString());
 
-    return this.http.post<any>(`${this.baseUrl}/auth/update-user-status`, null, { params: authParams });
+    return this.http.post<any>(`${this.baseUrl}/auth/update-user-status`, null, { params });
   }
 
   // Department Manager Dashboard Methods
