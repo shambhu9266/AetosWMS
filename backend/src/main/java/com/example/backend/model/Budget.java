@@ -22,6 +22,14 @@ public class Budget {
     public void setTotalBudget(BigDecimal totalBudget) { this.totalBudget = totalBudget; }
     public BigDecimal getRemainingBudget() { return remainingBudget; }
     public void setRemainingBudget(BigDecimal remainingBudget) { this.remainingBudget = remainingBudget; }
+    
+    // Calculated field: Used Budget = Total - Remaining
+    public BigDecimal getUsedBudget() {
+        if (totalBudget == null || remainingBudget == null) {
+            return BigDecimal.ZERO;
+        }
+        return totalBudget.subtract(remainingBudget);
+    }
 }
 
 

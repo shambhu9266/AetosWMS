@@ -701,4 +701,44 @@ export class ApiService {
     const authParams = this.getAuthParams();
     return this.http.get<any>(`${this.baseUrl}/departments/stats`, { params: authParams });
   }
+
+  // GRN methods
+  createGrn(request: GrnReceiveRequest): Observable<any> {
+    const authParams = this.getAuthParams();
+    return this.http.post<any>(`${this.baseUrl}/grn/receive`, request, { params: authParams });
+    }
+
+  getGrnHistory(poId?: number): Observable<any> {
+    let params = this.getAuthParams();
+    if (poId) params = params.set('poId', poId.toString());
+    return this.http.get<any>(`${this.baseUrl}/grn/history`, { params });
+  }
+
+  downloadGrnPdf(grnId: number): Observable<Blob> {
+    const authParams = this.getAuthParams();
+    return this.http.get(`${this.baseUrl}/grn/${grnId}/pdf`, {
+      params: authParams,
+      responseType: 'blob'
+    });
+  }
 }
+// GRN API additions
+export interface GrnReceiveItem {
+  description: string;
+  orderedQty: number;
+  receiveQty: number;
+  unit: string;
+  received: boolean;
+  status?: string;
+  remarks?: string;
+}
+
+export interface GrnReceiveRequest {
+  poId: number;
+  receivedBy: string;
+  receivedDate: string; // yyyy-MM-dd
+  overallRemarks?: string;
+  items: GrnReceiveItem[];
+}
+
+// Append GRN methods to existing ApiService class above

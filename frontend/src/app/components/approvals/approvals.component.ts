@@ -156,6 +156,10 @@ export class ApprovalsComponent implements OnInit {
         if (response.success) {
           console.log('Finance Decision successful:', response);
           this.loadApprovals(); // Reload data
+          // Reload budget to show updated amounts after approval
+          if (decision === 'APPROVE') {
+            this.loadBudgets();
+          }
         } else {
           this.alertService.showError(response.message || 'Failed to process Finance decision');
         }
@@ -211,6 +215,7 @@ export class ApprovalsComponent implements OnInit {
     this.apiService.getBudgets().subscribe({
       next: (response) => {
         if (response.success) {
+
           this.budgets.set(response.budgets || []);
         }
         this.budgetLoading.set(false);

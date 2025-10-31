@@ -324,8 +324,14 @@ public class ProcureService {
         approvalRepository.save(a);
 
         if ("APPROVE".equalsIgnoreCase(decision)) {
-            Budget budget = budgetRepository.findByDepartment(department)
-                    .orElseThrow(() -> new IllegalArgumentException("Budget not found for department: " + department));
+            // Use requisition's department, not the finance manager's department
+            String requisitionDepartment = r.getDepartment();
+            if (requisitionDepartment == null || requisitionDepartment.isBlank()) {
+                throw new IllegalArgumentException("Requisition department is missing");
+            }
+            
+            Budget budget = budgetRepository.findByDepartment(requisitionDepartment)
+                    .orElseThrow(() -> new IllegalArgumentException("Budget not found for department: " + requisitionDepartment));
 
             // Calculate total amount - handle both legacy single-item and new multi-item requisitions
             BigDecimal requestAmount;
@@ -352,7 +358,7 @@ public class ProcureService {
 
             Notification n = new Notification();
             n.setUserId(r.getCreatedBy());
-            n.setMessage("Your request for " + itemDescription + " (₹" + requestAmount + ") has been approved by Finance. Remaining " + department + " Budget: ₹" + budget.getRemainingBudget());
+            n.setMessage("Your request for " + itemDescription + " (₹" + requestAmount + ") has been approved by Finance. Remaining " + requisitionDepartment + " Budget: ₹" + budget.getRemainingBudget());
             notificationRepository.save(n);
         } else if ("REJECT".equalsIgnoreCase(decision)) {
             r.setStatus(RequisitionStatus.REJECTED);
