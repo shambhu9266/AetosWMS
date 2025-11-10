@@ -167,15 +167,5 @@
 		</plugins>
 	</build>
 
-	<repository>
-  <id>ADO19JULY</id>
-  <url>https://pkgs.dev.azure.com/ADO19JULY/_packaging/ADO19JULY/maven/v1</url>
-  <releases>
-    <enabled>true</enabled>
-  </releases>
-  <snapshots>
-    <enabled>true</enabled>
-  </snapshots>
-</repository>
 
 </project>
