@@ -131,7 +131,24 @@ export interface PurchaseOrder {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = '/api';
+  // Use relative URL for production, or detect environment
+  private baseUrl = this.getBaseUrl();
+  
+  private getBaseUrl(): string {
+    // In production, use relative URLs (same origin)
+    // In development, use localhost
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8080/api';
+        
+      } else {
+        // Production: use same origin
+        return '/api';
+      }
+    }
+    return 'http://localhost:8080/api';
+  }
 
   constructor(
     private http: HttpClient,

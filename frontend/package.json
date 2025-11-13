@@ -34,15 +34,17 @@
     "@angular/platform-browser": "^20.2.0",
     "@angular/router": "^20.2.0",
     "@angular/service-worker": "^20.2.0",
+    "@types/simple-peer": "^9.11.9",
     "chart.js": "^4.5.0",
+    "compression": "^1.7.4",
+    "helmet": "^7.1.0",
     "ng2-charts": "^8.0.0",
     "ngx-toastr": "^19.1.0",
     "rxjs": "~7.8.0",
+    "simple-peer": "^9.11.1",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0",
     "workbox-webpack-plugin": "^7.0.0",
-    "compression": "^1.7.4",
-    "helmet": "^7.1.0"
+    "zone.js": "~0.15.0"
   },
   "devDependencies": {
     "@angular/build": "^20.2.2",

@@ -8,7 +8,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = {"http://localhost:4200", "http://20.57.79.136", "http://20.57.79.136:80", "http://20.57.79.136:8080"})
 public class AuthController {
     private final AuthService authService;
     
@@ -18,10 +18,16 @@ public class AuthController {
     
     @PostMapping("/login")
     public Map<String, Object> login(@RequestParam String username, @RequestParam String password) {
-        System.out.println("DEBUG: AuthController received login request for username: " + username);
-        Map<String, Object> result = authService.login(username, password);
-        System.out.println("DEBUG: AuthController returning login result: " + result);
-        return result;
+        try {
+            System.out.println("DEBUG: AuthController received login request for username: " + username);
+            Map<String, Object> result = authService.login(username, password);
+            System.out.println("DEBUG: AuthController returning login result: " + result);
+            return result;
+        } catch (Exception e) {
+            System.err.println("ERROR: Login failed with exception: " + e.getMessage());
+            e.printStackTrace();
+            return Map.of("success", false, "message", "Internal server error: " + e.getMessage());
+        }
     }
     
     @PostMapping("/logout")

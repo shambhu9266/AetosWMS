@@ -22,7 +22,23 @@ export interface LoginResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = '/api/auth';
+  // Use relative URL for production, or detect environment
+  private baseUrl = this.getBaseUrl();
+  
+  private getBaseUrl(): string {
+    // In production, use relative URLs (same origin)
+    // In development, use localhost
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:8080/api/auth';
+      } else {
+        // Production: use same origin
+        return '/api/auth';
+      }
+    }
+    return 'http://localhost:8080/api/auth';
+  }
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   private tokenSubject = new BehaviorSubject<string | null>(null);
 

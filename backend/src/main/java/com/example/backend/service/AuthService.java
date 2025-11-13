@@ -115,40 +115,51 @@ public class AuthService {
     }
     
     public Map<String, Object> login(String username, String password) {
-        System.out.println("DEBUG: Login attempt for username: " + username);
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            System.out.println("DEBUG: User found - Username: " + user.getUsername() + 
-                             ", Password matches: " + user.getPassword().equals(password) + 
-                             ", IsActive: " + user.getIsActive());
+        try {
+            System.out.println("DEBUG: Login attempt for username: " + username);
+            Optional<User> userOpt = userRepository.findByUsername(username);
             
-            if (user.getPassword().equals(password) && user.getIsActive()) {
-                String token = jwtUtil.generateToken(username, user.getRole().name(), user.getDepartment(), user.getId());
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                System.out.println("DEBUG: User found - Username: " + user.getUsername() + 
+                                 ", Password matches: " + user.getPassword().equals(password) + 
+                                 ", IsActive: " + user.getIsActive());
                 
-                System.out.println("DEBUG: Login successful for user: " + username + ", JWT token generated");
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("success", true);
-                response.put("token", token);
-                response.put("user", Map.of(
-                    "id", user.getId(),
-                    "username", user.getUsername(),
-                    "fullName", user.getFullName(),
-                    "role", user.getRole().name(),
-                    "department", user.getDepartment()
-                ));
-                return response;
+                if (user.getPassword().equals(password) && user.getIsActive()) {
+                    if (jwtUtil == null) {
+                        System.err.println("ERROR: JwtUtil is null!");
+                        return Map.of("success", false, "message", "Internal server error: JWT utility not initialized");
+                    }
+                    
+                    String token = jwtUtil.generateToken(username, user.getRole().name(), user.getDepartment(), user.getId());
+                    
+                    System.out.println("DEBUG: Login successful for user: " + username + ", JWT token generated");
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("success", true);
+                    response.put("token", token);
+                    response.put("user", Map.of(
+                        "id", user.getId(),
+                        "username", user.getUsername(),
+                        "fullName", user.getFullName(),
+                        "role", user.getRole().name(),
+                        "department", user.getDepartment()
+                    ));
+                    return response;
+                } else {
+                    System.out.println("DEBUG: Login failed - Password mismatch or user inactive");
+                }
             } else {
-                System.out.println("DEBUG: Login failed - Password mismatch or user inactive");
+                System.out.println("DEBUG: User not found in database");
             }
-        } else {
-            System.out.println("DEBUG: User not found in database");
+            
+            System.out.println("DEBUG: Login failed for username: " + username);
+            return Map.of("success", false, "message", "Invalid credentials");
+        } catch (Exception e) {
+            System.err.println("ERROR: Login exception for username: " + username + " - " + e.getMessage());
+            e.printStackTrace();
+            return Map.of("success", false, "message", "Internal server error: " + e.getMessage());
         }
-        
-        System.out.println("DEBUG: Login failed for username: " + username);
-        return Map.of("success", false, "message", "Invalid credentials");
     }
     
     public User getCurrentUser(String token) {
