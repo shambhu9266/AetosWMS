@@ -1,0 +1,32 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="55" fill="#17331F" stroke="#22c55e" stroke-width="2"/>
+  
+  <!-- Procurement/Supply chain icon -->
+  <g transform="translate(30, 30)">
+    <!-- Building/Office icon -->
+    <rect x="10" y="25" width="20" height="25" fill="#22c55e" rx="2"/>
+    <rect x="12" y="27" width="6" height="4" fill="white"/>
+    <rect x="20" y="27" width="6" height="4" fill="white"/>
+    <rect x="12" y="33" width="6" height="4" fill="white"/>
+    <rect x="20" y="33" width="6" height="4" fill="white"/>
+    <rect x="12" y="39" width="6" height="4" fill="white"/>
+    <rect x="20" y="39" width="6" height="4" fill="white"/>
+    
+    <!-- Supply chain arrows -->
+    <path d="M35 35 L45 35 L45 25 L55 25" stroke="#22c55e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M50 20 L55 25 L50 30" stroke="#22c55e" stroke-width="2" fill="none" stroke-linecap="round"/>
+    
+    <!-- Document/Contract icon -->
+    <rect x="45" y="15" width="15" height="20" fill="#22c55e" rx="1"/>
+    <path d="M50 20 L55 20 M50 23 L55 23 M50 26 L55 26 M50 29 L55 29" stroke="white" stroke-width="1"/>
+    
+    <!-- Checkmark for approval -->
+    <circle cx="65" cy="25" r="8" fill="#22c55e"/>
+    <path d="M60 25 L63 28 L70 20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Company name -->
+  <text x="60" y="95" text-anchor="middle" fill="#17331F" font-family="Arial, sans-serif" font-size="12" font-weight="bold">AETOS</text>
+  <text x="60" y="108" text-anchor="middle" fill="#22c55e" font-family="Arial, sans-serif" font-size="8">PROCUREMENT</text>
+</svg>
