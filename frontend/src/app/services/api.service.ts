@@ -131,7 +131,7 @@ export interface PurchaseOrder {
   providedIn: 'root'
 })
 export class ApiService {
-  private baseUrl = 'http://localhost:8080/api';
+  private baseUrl = 'http://20.57.79.136:8080/api';
 
   constructor(
     private http: HttpClient,
