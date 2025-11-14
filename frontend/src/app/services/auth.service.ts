@@ -26,15 +26,16 @@ export class AuthService {
   private baseUrl = this.getBaseUrl();
   
   private getBaseUrl(): string {
-    // In production, use relative URLs (same origin)
+    // In production, use direct IP address with port 8080
     // In development, use localhost
     if (typeof window !== 'undefined') {
       const hostname = window.location.hostname;
+      
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'http://localhost:8080/api/auth';
       } else {
-        // Production: use same origin
-        return '/api/auth';
+        // Production: use direct IP address
+        return 'http://20.57.79.136:8080/api/auth';
       }
     }
     return 'http://localhost:8080/api/auth';
