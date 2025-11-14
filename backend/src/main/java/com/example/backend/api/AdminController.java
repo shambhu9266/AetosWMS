@@ -10,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = {"http://localhost:4200", "http://20.57.79.136", "http://20.57.79.136:80", "http://20.57.79.136:8080"})
 public class AdminController {
     
     @Autowired

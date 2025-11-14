@@ -14,10 +14,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed.origins:http://localhost:4200,http://20.57.79.136,http://20.57.79.136:80,http://20.57.79.136:8080}")
+    private String allowedOrigins;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Split the comma-separated origins from configuration
+        String[] origins = allowedOrigins.split(",");
+        
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:4200", "http://20.57.79.136", "http://20.57.79.136:80", "http://20.57.79.136:8080")
+                .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
