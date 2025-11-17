@@ -14,6 +14,12 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Value("${cors.allowed.origins:http://localhost:4200,http://20.57.79.136,http://20.57.79.136:80,http://20.57.79.136:8080}")
     private String allowedOrigins;
+    
+    // Also allow requests from the same IP without explicit port (defaults to port 80)
+    private static final String[] ADDITIONAL_ORIGINS = {
+        "http://20.57.79.136",
+        "http://20.57.79.136:80"
+    };
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -34,12 +40,21 @@ public class CorsConfig implements WebMvcConfigurer {
         // Split the comma-separated origins from configuration
         String[] origins = allowedOrigins.split(",");
         for (String origin : origins) {
-            configuration.addAllowedOrigin(origin.trim());
+            String trimmedOrigin = origin.trim();
+            if (!trimmedOrigin.isEmpty()) {
+                configuration.addAllowedOrigin(trimmedOrigin);
+            }
+        }
+        
+        // Add additional origins explicitly
+        for (String origin : ADDITIONAL_ORIGINS) {
+            configuration.addAllowedOrigin(origin);
         }
         
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
